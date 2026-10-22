@@ -1,0 +1,322 @@
+:root {
+  --bg: #fbfaf8;
+  --surface: #ffffff;
+  --text: #1f2328;
+  --muted: #6b7280;
+  --border: #d9d6d0;
+  --accent: #2f6feb;
+  --accent-text: #ffffff;
+  --del-bg: #ffe1df;
+  --del-text: #a4161a;
+  --ins-bg: #d6f5dc;
+  --ins-text: #146c2e;
+  --accepted-line: #4caf6a;
+  --rejected-line: #b0aaa0;
+  --focus: #2f6feb;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #15171b;
+    --surface: #1d2025;
+    --text: #e6e6e6;
+    --muted: #9aa0a8;
+    --border: #353a42;
+    --accent: #5b8cff;
+    --accent-text: #0b0d10;
+    --del-bg: #4a1f22;
+    --del-text: #ffb3ae;
+    --ins-bg: #1c3d27;
+    --ins-text: #9be3ad;
+    --accepted-line: #3f9d5c;
+    --rejected-line: #6b6f76;
+    --focus: #7aa2ff;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #15171b;
+  --surface: #1d2025;
+  --text: #e6e6e6;
+  --muted: #9aa0a8;
+  --border: #353a42;
+  --accent: #5b8cff;
+  --accent-text: #0b0d10;
+  --del-bg: #4a1f22;
+  --del-text: #ffb3ae;
+  --ins-bg: #1c3d27;
+  --ins-text: #9be3ad;
+  --accepted-line: #3f9d5c;
+  --rejected-line: #6b6f76;
+  --focus: #7aa2ff;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+button {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.35rem 0.8rem;
+  cursor: pointer;
+}
+button:hover {
+  border-color: var(--muted);
+}
+button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+button.icon {
+  width: 2rem;
+  padding: 0.35rem 0;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.topbar h1 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+
+/* Paste view */
+.inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 760px) {
+  .inputs {
+    grid-template-columns: 1fr;
+  }
+}
+.inputs label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-weight: 600;
+}
+textarea {
+  height: 60vh;
+  resize: vertical;
+  padding: 0.75rem;
+  font: 15px/1.55 Georgia, 'Iowan Old Style', serif;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+textarea:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: -1px;
+}
+.paste-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* Review view */
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+#counts {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+#doc {
+  max-width: 72ch;
+  margin: 1.5rem auto 30vh;
+  padding: 2rem 2.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font: 17px/1.75 Georgia, 'Iowan Old Style', serif;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+#doc .empty {
+  margin: 0;
+  color: var(--muted);
+  font-family: system-ui, sans-serif;
+  white-space: normal;
+}
+
+.chg {
+  cursor: pointer;
+  border-radius: 3px;
+}
+.chg del,
+.chg ins {
+  text-decoration: none;
+  padding: 0 1px;
+  border-radius: 3px;
+}
+.chg del {
+  background: var(--del-bg);
+  color: var(--del-text);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+.chg ins {
+  background: var(--ins-bg);
+  color: var(--ins-text);
+}
+.chg.accepted {
+  text-decoration: underline 2px var(--accepted-line);
+  text-underline-offset: 4px;
+}
+.chg.rejected {
+  text-decoration: underline 2px dotted var(--rejected-line);
+  text-underline-offset: 4px;
+}
+.chg.focused {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.empty-mark {
+  display: inline-block;
+  width: 0.4em;
+  height: 0.9em;
+  vertical-align: -0.1em;
+  border-radius: 2px;
+  background: var(--rejected-line);
+}
+.chg.accepted .empty-mark {
+  background: var(--accepted-line);
+}
+
+/* Floating per-change actions */
+#change-actions {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
+}
+#change-actions button {
+  padding: 0.05rem 0.5rem;
+  font-size: 0.85rem;
+  border: none;
+}
+#change-actions .accept {
+  color: var(--ins-text);
+  background: var(--ins-bg);
+}
+#change-actions .reject {
+  color: var(--del-text);
+  background: var(--del-bg);
+}
+#change-actions[data-decision='pending'] .undo,
+#change-actions:not([data-decision='pending']) .accept,
+#change-actions:not([data-decision='pending']) .reject {
+  display: none;
+}
+
+/* Toast */
+#toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.5rem;
+  transform: translate(-50%, 1rem);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  background: var(--text);
+  color: var(--bg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, transform 0.15s;
+}
+#toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* Help dialog */
+dialog {
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+}
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.4);
+}
+dialog h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+dialog td {
+  padding: 0.25rem 1rem 0.25rem 0;
+}
+dialog form {
+  margin-top: 1rem;
+  text-align: right;
+}
+kbd {
+  font: 0.85em ui-monospace, monospace;
+  padding: 0.1em 0.4em;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+}

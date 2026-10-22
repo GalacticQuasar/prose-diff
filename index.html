@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='1' y='3' width='14' height='4' rx='1' fill='%23e5534b'/><rect x='1' y='9' width='14' height='4' rx='1' fill='%2357ab5a'/></svg>" />
+    <title>Prose Diff</title>
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>Prose Diff</h1>
+      <span class="spacer"></span>
+      <button id="help-btn" class="icon" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">?</button>
+      <button id="theme-btn" class="icon" title="Toggle dark mode" aria-label="Toggle dark mode">◐</button>
+    </header>
+
+    <main>
+      <section id="paste-view">
+        <div class="inputs">
+          <label>
+            <span>Original</span>
+            <textarea id="original" spellcheck="false" placeholder="Paste your original text…"></textarea>
+          </label>
+          <label>
+            <span>Revised</span>
+            <textarea id="revised" spellcheck="false" placeholder="Paste the LLM's revised text…"></textarea>
+          </label>
+        </div>
+        <div class="paste-actions">
+          <span class="hint">Ctrl+Enter to compare</span>
+          <button id="compare-btn" class="primary">Compare</button>
+        </div>
+      </section>
+
+      <section id="review-view" hidden>
+        <div class="toolbar">
+          <span id="counts"></span>
+          <span class="spacer"></span>
+          <button id="edit-btn">Edit inputs</button>
+          <button id="reset-btn">Reset</button>
+          <button id="reject-all-btn">Reject all</button>
+          <button id="accept-all-btn">Accept all</button>
+          <button id="copy-btn" class="primary">Copy result</button>
+        </div>
+        <article id="doc"></article>
+      </section>
+    </main>
+
+    <div id="change-actions" hidden>
+      <button data-act="accepted" class="accept" title="Accept (a)">✓</button>
+      <button data-act="rejected" class="reject" title="Reject (r)">✗</button>
+      <button data-act="pending" class="undo" title="Undo (u)">↺ Undo</button>
+    </div>
+
+    <div id="toast" role="status" aria-live="polite"></div>
+
+    <dialog id="help">
+      <h2>Keyboard shortcuts</h2>
+      <table>
+        <tr><td><kbd>j</kbd> / <kbd>↓</kbd></td><td>Next change</td></tr>
+        <tr><td><kbd>k</kbd> / <kbd>↑</kbd></td><td>Previous change</td></tr>
+        <tr><td><kbd>a</kbd> / <kbd>Enter</kbd></td><td>Accept, go to next pending</td></tr>
+        <tr><td><kbd>r</kbd> / <kbd>Backspace</kbd></td><td>Reject, go to next pending</td></tr>
+        <tr><td><kbd>u</kbd></td><td>Undo decision</td></tr>
+        <tr><td><kbd>Shift</kbd>+<kbd>A</kbd></td><td>Accept all</td></tr>
+        <tr><td><kbd>Shift</kbd>+<kbd>R</kbd></td><td>Reject all</td></tr>
+        <tr><td><kbd>c</kbd></td><td>Copy result</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td><td>Compare (paste screen)</td></tr>
+        <tr><td><kbd>?</kbd></td><td>Show this help</td></tr>
+      </table>
+      <form method="dialog"><button class="primary">Close</button></form>
+    </dialog>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
