@@ -1,8 +1,8 @@
 # Prose Diff
 
-Merge an LLM's rewrite into your own writing, one change at a time, like GitHub Copilot's inline diffs in VS Code.
+Compare two versions of a piece of writing and merge them, one change at a time.
 
-Paste your original text and the LLM's revised text to see every change inline: removed text in red, added text in green. Changes are compared word by word, not line by line. Accept or reject each change, then copy the merged result. Everything runs in the browser; your text never leaves your machine.
+Paste an original and a revised version to see every change inline: removed text in red, added text in green. Changes are compared word by word, not line by line, so a one-word edit doesn't flag a whole paragraph. Accept or reject each change, then copy the merged result. Everything runs in the browser; your text never leaves your machine.
 
 ## Usage
 
@@ -48,7 +48,6 @@ src/render.ts      paste and review views, copy, toast
 src/keyboard.ts    keyboard shortcuts
 src/main.ts        startup and event wiring
 src/style.css      light and dark themes
-BRIEF.md           original spec
 ```
 
 Built with Vite, TypeScript and [jsdiff](https://github.com/kpdecker/jsdiff).
