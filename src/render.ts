@@ -7,6 +7,7 @@ const pasteView = $('paste-view');
 const reviewView = $('review-view');
 const doc = $('doc');
 const counts = $('counts');
+const toolbar = reviewView.querySelector<HTMLElement>('.toolbar')!;
 const actions = $('change-actions');
 const toast = $('toast');
 export const originalInput = $<HTMLTextAreaElement>('original');
@@ -121,7 +122,13 @@ export function render() {
 }
 
 export function scrollFocusedIntoView() {
-  doc.querySelector('.chg.focused')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  const target = doc.querySelector<HTMLElement>('.chg.focused');
+  if (!target) return;
+  // Keep the change clear of the sticky toolbar (its height varies when it wraps) with some breathing room.
+  const breathingRoom = Math.round(window.innerHeight * 0.15);
+  target.style.scrollMarginTop = `${toolbar.offsetHeight + breathingRoom}px`;
+  target.style.scrollMarginBottom = `${breathingRoom}px`;
+  target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
 export function showToast(message: string, action?: { label: string; run: () => void }) {
