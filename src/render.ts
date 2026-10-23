@@ -72,9 +72,22 @@ function positionActions() {
   actions.hidden = false;
 
   const rects = target.getClientRects();
-  const rect = rects[rects.length - 1] ?? target.getBoundingClientRect();
   const width = actions.offsetWidth;
-  const left = Math.min(rect.right + window.scrollX - width, window.scrollX + document.documentElement.clientWidth - width - 8);
+  const docRect = doc.getBoundingClientRect();
+  const viewportRight = document.documentElement.clientWidth;
+
+  // Prefer the margin to the right of the document, level with the change's
+  // first line, so the text stays readable.
+  if (docRect.right + 8 + width <= viewportRight - 8) {
+    const line = rects[0] ?? target.getBoundingClientRect();
+    actions.style.left = `${docRect.right + window.scrollX + 8}px`;
+    actions.style.top = `${line.top + window.scrollY + (line.height - actions.offsetHeight) / 2}px`;
+    return;
+  }
+
+  // Narrow viewport: no margin to use, so float just above the change.
+  const rect = rects[rects.length - 1] ?? target.getBoundingClientRect();
+  const left = Math.min(rect.right + window.scrollX - width, window.scrollX + viewportRight - width - 8);
   actions.style.left = `${Math.max(8, left)}px`;
   actions.style.top = `${rect.top + window.scrollY - actions.offsetHeight - 2}px`;
 }
@@ -161,7 +174,7 @@ export function bindDocEvents() {
     hideTimer = window.setTimeout(() => {
       hoverId = null;
       positionActions();
-    }, 250);
+    }, 600);
   };
 
   doc.addEventListener('mouseover', (e) => {
