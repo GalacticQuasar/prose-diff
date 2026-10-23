@@ -1,6 +1,6 @@
 import './style.css';
 import { bindKeyboard } from './keyboard';
-import { bindDocEvents, copyResult, originalInput, render, revisedInput, showToast } from './render';
+import { bindDocEvents, copyResult, nextRound, originalInput, render, revisedInput, showToast } from './render';
 import { acceptAll, compare, editInputs, rejectAll, resetAll, setInputs, setTheme, state, subscribe } from './state';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -19,6 +19,7 @@ $('reset-btn').addEventListener('click', resetAll);
 $('accept-all-btn').addEventListener('click', acceptAll);
 $('reject-all-btn').addEventListener('click', rejectAll);
 $('copy-btn').addEventListener('click', () => void copyResult());
+$('continue-btn').addEventListener('click', nextRound);
 $('help-btn').addEventListener('click', () => help.showModal());
 $('theme-btn').addEventListener('click', () => {
   const systemDark = matchMedia('(prefers-color-scheme: dark)').matches;

@@ -1,5 +1,5 @@
 import { countDecisions, decisionOf, mergeResult, type Segment } from './diff';
-import { decide, focus, getSegments, state } from './state';
+import { continueFromResult, decide, focus, getSegments, state } from './state';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -111,11 +111,31 @@ export function scrollFocusedIntoView() {
   doc.querySelector('.chg.focused')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
-export function showToast(message: string) {
+export function showToast(message: string, action?: { label: string; run: () => void }) {
+  const hide = () => toast.classList.remove('show');
   toast.textContent = message;
+  if (action) {
+    const btn = el('button', '', action.label);
+    btn.addEventListener('click', () => {
+      hide();
+      action.run();
+    });
+    toast.append(btn);
+  }
   toast.classList.add('show');
   window.clearTimeout(Number(toast.dataset.timer));
-  toast.dataset.timer = String(window.setTimeout(() => toast.classList.remove('show'), 1600));
+  // Leave time to reach the action button.
+  toast.dataset.timer = String(window.setTimeout(hide, action ? 6000 : 1600));
+}
+
+export function nextRound() {
+  const pending = countDecisions(getSegments(), state.decisions).pending;
+  const restore = continueFromResult();
+  revisedInput.focus();
+  showToast(pending ? `Result is the new original · ${pending} pending kept as original` : 'Result is the new original', {
+    label: 'Undo',
+    run: restore,
+  });
 }
 
 export async function copyResult() {

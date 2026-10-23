@@ -1,4 +1,4 @@
-import { buildSegments, changeIds, decisionOf, type Decision, type Decisions, type Segment } from './diff';
+import { buildSegments, changeIds, decisionOf, mergeResult, type Decision, type Decisions, type Segment } from './diff';
 
 export type Theme = 'light' | 'dark' | null; // null = follow system
 
@@ -80,6 +80,19 @@ export function editInputs() {
   update({ view: 'paste' });
 }
 
+/**
+ * Start the next round: the merged result becomes the new original and the
+ * revised box is cleared. Returns a function that restores the previous round.
+ */
+export function continueFromResult() {
+  const { original, revised, decisions, focusedId } = state;
+  update({ view: 'paste', original: mergeResult(segments, decisions), revised: '', dirty: false, decisions: {}, focusedId: null });
+  return () => {
+    segments = buildSegments(original, revised);
+    ids = changeIds(segments);
+    update({ view: 'review', original, revised, dirty: false, decisions, focusedId });
+  };
+}
 
 function setAll(d: Decision) {
   update({ decisions: Object.fromEntries(ids.map((id) => [id, d])) });

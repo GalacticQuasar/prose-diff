@@ -1,4 +1,4 @@
-import { copyResult, scrollFocusedIntoView } from './render';
+import { copyResult, nextRound, scrollFocusedIntoView } from './render';
 import { acceptAll, compare, decideFocused, focusStep, rejectAll, state } from './state';
 
 export function bindKeyboard(help: HTMLDialogElement) {
@@ -33,6 +33,7 @@ export function bindKeyboard(help: HTMLDialogElement) {
       A: acceptAll,
       R: rejectAll,
       c: () => void copyResult(),
+      n: nextRound,
       '?': () => help.showModal(),
     };
     const handler = handlers[e.key];

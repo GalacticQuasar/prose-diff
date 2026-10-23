@@ -20,6 +20,7 @@ npm run build     # build static files into dist/
 - Hover over or click a change to show its ✓ accept / ✗ reject buttons. Decided changes show ↺ Undo, so you can change your mind.
 - **Accept all**, **Reject all** and **Reset** apply to every change at once.
 - **Copy result** copies the merged text. Changes you haven't decided on keep your original wording.
+- **Continue from result** starts the next round: the merged text becomes the new original and Revised is cleared for your next draft. The toast that appears has an **Undo** button that brings back the previous round.
 - Edits to spaces and line breaks are shown with `·`, `→` and `¶` markers. These only appear on screen, not in the copied text.
 - Your text and decisions are saved in the browser's local storage, so they survive a refresh. Changing the inputs and comparing again clears the decisions.
 - Dark mode follows your system setting. The ◐ button overrides it.
@@ -35,6 +36,7 @@ npm run build     # build static files into dist/
 | `u` | Undo decision |
 | `Shift`+`A` / `Shift`+`R` | Accept all / reject all |
 | `c` | Copy result |
+| `n` | Continue from result |
 | `Ctrl`+`Enter` | Compare (on the paste screen) |
 | `?` | Show shortcuts |
 
