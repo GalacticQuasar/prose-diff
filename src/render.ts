@@ -6,6 +6,8 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 const pasteView = $('paste-view');
 const reviewView = $('review-view');
 const doc = $('doc');
+const page = reviewView.querySelector<HTMLElement>('.page')!;
+const marks = $('marks');
 const counts = $('counts');
 const toolbar = reviewView.querySelector<HTMLElement>('.toolbar')!;
 const actions = $('change-actions');
@@ -21,6 +23,11 @@ let hideTimer: number | undefined;
 function visible(text: string): string {
   if (/^[ \t]+$/.test(text)) return text.replace(/ /g, '·').replace(/\t/g, '→');
   return text.replace(/\n/g, '¶\n');
+}
+
+/** "3 undecided changes kept as original." for toasts, or '' when all are decided. */
+function keptNote(pending: number) {
+  return pending ? ` ${pending} undecided change${pending === 1 ? '' : 's'} kept as original.` : '';
 }
 
 function el(tag: string, className: string, text?: string) {
@@ -39,13 +46,13 @@ function renderChange(seg: Extract<Segment, { kind: 'change' }>) {
   if (decision === 'pending') {
     if (seg.removed) span.append(el('del', '', visible(seg.removed)));
     if (seg.added) span.append(el('ins', '', visible(seg.added)));
-    span.title = 'Click to select · a accept · r reject';
+    span.title = 'Click to select, then a to accept or r to reject';
   } else {
     const text = decision === 'accepted' ? seg.added : seg.removed;
     // An accepted deletion or rejected insertion leaves nothing behind;
     // show a small marker so it can still be found and undone.
     span.append(text ? document.createTextNode(text) : el('span', 'empty-mark'));
-    span.title = `${decision === 'accepted' ? 'Accepted' : 'Rejected'} · click to undo`;
+    span.title = `${decision === 'accepted' ? 'Accepted' : 'Rejected'}. Click to undo.`;
   }
   return span;
 }
@@ -58,6 +65,34 @@ function renderDoc(segments: Segment[]) {
   doc.replaceChildren(
     ...segments.map((s) => (s.kind === 'same' ? document.createTextNode(s.text) : renderChange(s))),
   );
+}
+
+const MARK_GLYPH = { pending: '•', accepted: '✓', rejected: '✗' } as const;
+
+/** Editor's marks in the page margin: one row per text line that has changes. */
+function renderMarks() {
+  const pageTop = page.getBoundingClientRect().top;
+  const rows = new Map<number, HTMLElement>();
+  for (const chg of doc.querySelectorAll<HTMLElement>('.chg')) {
+    const line = chg.getClientRects()[0];
+    if (!line) continue;
+    const top = Math.round(line.top - pageTop);
+    // Changes on the same line can differ by a pixel or two in height; share a row.
+    let row = [...rows.entries()].find(([t]) => Math.abs(t - top) < line.height / 2)?.[1];
+    if (!row) {
+      row = el('div', 'mark-row');
+      row.style.top = `${top}px`;
+      row.style.height = `${line.height}px`;
+      rows.set(top, row);
+    }
+    const id = Number(chg.dataset.id);
+    const decision = decisionOf(state.decisions, id);
+    const mark = el('span', `mark ${decision}`, MARK_GLYPH[decision]);
+    mark.dataset.id = String(id);
+    if (id === state.focusedId) mark.classList.add('focused');
+    row.append(mark);
+  }
+  marks.replaceChildren(...rows.values());
 }
 
 function positionActions() {
@@ -74,14 +109,14 @@ function positionActions() {
 
   const rects = target.getClientRects();
   const width = actions.offsetWidth;
-  const docRect = doc.getBoundingClientRect();
+  const pageRect = page.getBoundingClientRect();
   const viewportRight = document.documentElement.clientWidth;
 
-  // Prefer the margin to the right of the document, level with the change's
+  // Prefer the space to the right of the page, level with the change's
   // first line, so the text stays readable.
-  if (docRect.right + 8 + width <= viewportRight - 8) {
+  if (pageRect.right + 8 + width <= viewportRight - 8) {
     const line = rects[0] ?? target.getBoundingClientRect();
-    actions.style.left = `${docRect.right + window.scrollX + 8}px`;
+    actions.style.left = `${pageRect.right + window.scrollX + 8}px`;
     actions.style.top = `${line.top + window.scrollY + (line.height - actions.offsetHeight) / 2}px`;
     return;
   }
@@ -113,8 +148,9 @@ export function render() {
   } else {
     const segments = getSegments();
     renderDoc(segments);
+    renderMarks();
     const c = countDecisions(segments, state.decisions);
-    counts.textContent = `${c.total} change${c.total === 1 ? '' : 's'} · ${c.accepted} accepted · ${c.rejected} rejected · ${c.pending} pending`;
+    counts.textContent = c.total ? `${c.total - c.pending} of ${c.total} decided` : 'No changes';
     if (lastView !== 'review') hoverId = null;
   }
   positionActions();
@@ -152,7 +188,7 @@ export function nextRound() {
   const pending = countDecisions(getSegments(), state.decisions).pending;
   const restore = continueFromResult();
   revisedInput.focus();
-  showToast(pending ? `Result is the new original · ${pending} pending kept as original` : 'Result is the new original', {
+  showToast(`Result is the new original.${keptNote(pending)}`, {
     label: 'Undo',
     run: restore,
   });
@@ -172,7 +208,7 @@ export async function copyResult() {
     ta.remove();
   }
   const pending = countDecisions(getSegments(), state.decisions).pending;
-  showToast(pending ? `Copied · ${pending} pending kept as original` : 'Copied');
+  showToast(`Copied.${keptNote(pending)}`);
 }
 
 export function bindDocEvents() {
@@ -201,6 +237,10 @@ export function bindDocEvents() {
     const chg = (e.target as HTMLElement).closest<HTMLElement>('.chg');
     if (chg) focus(Number(chg.dataset.id));
   });
+  marks.addEventListener('click', (e) => {
+    const mark = (e.target as HTMLElement).closest<HTMLElement>('.mark');
+    if (mark) focus(Number(mark.dataset.id));
+  });
 
   actions.addEventListener('click', (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-act]');
@@ -209,5 +249,11 @@ export function bindDocEvents() {
     decide(Number(actions.dataset.id), btn.dataset.act as 'accepted' | 'rejected' | 'pending');
   });
 
-  window.addEventListener('resize', positionActions);
+  const relayout = () => {
+    if (state.view === 'review') renderMarks();
+    positionActions();
+  };
+  window.addEventListener('resize', relayout);
+  // Line breaks move once the web font replaces the fallback.
+  void document.fonts.ready.then(relayout);
 }

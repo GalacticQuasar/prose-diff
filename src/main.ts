@@ -1,3 +1,5 @@
+import '@fontsource/courier-prime/400.css';
+import '@fontsource/courier-prime/700.css';
 import './style.css';
 import { bindKeyboard } from './keyboard';
 import { bindDocEvents, copyResult, nextRound, originalInput, render, revisedInput, showToast } from './render';

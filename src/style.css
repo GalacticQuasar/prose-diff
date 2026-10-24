@@ -1,56 +1,44 @@
+/* A typed manuscript marked up by an editor: ribbon red strikes what goes,
+   blue pencil adds what comes in, and decisions are tallied in the margin. */
 :root {
-  --bg: #fbfaf8;
-  --surface: #ffffff;
-  --text: #1f2328;
-  --muted: #6b7280;
-  --border: #d9d6d0;
-  --accent: #2f6feb;
-  --accent-text: #ffffff;
-  --del-bg: #ffe1df;
-  --del-text: #a4161a;
-  --ins-bg: #d6f5dc;
-  --ins-text: #146c2e;
-  --accepted-line: #4caf6a;
-  --rejected-line: #b0aaa0;
-  --focus: #2f6feb;
+  --paper: #f3f4f1;
+  --sheet: #ffffff;
+  --ink: #1c1e26;
+  --graphite: #6e7178;
+  --rule: #d5d7d2;
+  --red: #c8102e;
+  --red-wash: #fbe7ea;
+  --blue: #1f5fad;
+  --blue-wash: #e6eef8;
+  --mono: 'Courier Prime', 'Courier New', ui-monospace, monospace;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: #15171b;
-    --surface: #1d2025;
-    --text: #e6e6e6;
-    --muted: #9aa0a8;
-    --border: #353a42;
-    --accent: #5b8cff;
-    --accent-text: #0b0d10;
-    --del-bg: #4a1f22;
-    --del-text: #ffb3ae;
-    --ins-bg: #1c3d27;
-    --ins-text: #9be3ad;
-    --accepted-line: #3f9d5c;
-    --rejected-line: #6b6f76;
-    --focus: #7aa2ff;
+    --paper: #1e2029;
+    --sheet: #262935;
+    --ink: #e4e4df;
+    --graphite: #9a9da6;
+    --rule: #3a3e4c;
+    --red: #ff8a8a;
+    --red-wash: #45242c;
+    --blue: #8db8f2;
+    --blue-wash: #22334d;
     color-scheme: dark;
   }
 }
 
 :root[data-theme='dark'] {
-  --bg: #15171b;
-  --surface: #1d2025;
-  --text: #e6e6e6;
-  --muted: #9aa0a8;
-  --border: #353a42;
-  --accent: #5b8cff;
-  --accent-text: #0b0d10;
-  --del-bg: #4a1f22;
-  --del-text: #ffb3ae;
-  --ins-bg: #1c3d27;
-  --ins-text: #9be3ad;
-  --accepted-line: #3f9d5c;
-  --rejected-line: #6b6f76;
-  --focus: #7aa2ff;
+  --paper: #1e2029;
+  --sheet: #262935;
+  --ink: #e4e4df;
+  --graphite: #9a9da6;
+  --rule: #3a3e4c;
+  --red: #ff8a8a;
+  --red-wash: #45242c;
+  --blue: #8db8f2;
+  --blue-wash: #22334d;
   color-scheme: dark;
 }
 
@@ -60,9 +48,9 @@
 
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font: 15px/1.5 var(--mono);
 }
 
 [hidden] {
@@ -71,29 +59,34 @@ body {
 
 button {
   font: inherit;
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.35rem 0.8rem;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0.3rem 0.75rem;
   cursor: pointer;
 }
 button:hover {
-  border-color: var(--muted);
+  border-color: var(--ink);
 }
-button:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 1px;
+button:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
 }
 button.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-text);
-  font-weight: 600;
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--sheet);
+  font-weight: 700;
 }
 button.icon {
   width: 2rem;
-  padding: 0.35rem 0;
+  padding: 0.3rem 0;
+  border-color: transparent;
+}
+button.icon:hover {
+  border-color: var(--rule);
 }
 
 .spacer {
@@ -103,26 +96,26 @@ button.icon {
 .topbar {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1.25rem;
-  border-bottom: 1px solid var(--border);
+  gap: 0.25rem;
+  padding: 0.75rem 1.25rem;
 }
 .topbar h1 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 1rem;
+  font-weight: 700;
 }
 
 main {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 1.25rem;
+  padding: 0 1.25rem 1.25rem;
 }
 
-/* Paste view */
+/* Paste view: two blank sheets */
 .inputs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 @media (max-width: 760px) {
   .inputs {
@@ -132,22 +125,21 @@ main {
 .inputs label {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  font-weight: 600;
+  gap: 0.4rem;
+  font-weight: 700;
 }
 textarea {
-  height: 60vh;
+  height: 62vh;
   resize: vertical;
-  padding: 0.75rem;
-  font: 15px/1.55 Georgia, 'Iowan Old Style', serif;
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  padding: 1.5rem 1.75rem;
+  font: 16px/1.8 var(--mono);
+  color: var(--ink);
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
 }
-textarea:focus {
-  outline: 2px solid var(--focus);
-  outline-offset: -1px;
+textarea::placeholder {
+  color: var(--graphite);
 }
 .paste-actions {
   display: flex;
@@ -157,7 +149,7 @@ textarea:focus {
   margin-top: 1rem;
 }
 .hint {
-  color: var(--muted);
+  color: var(--graphite);
   font-size: 0.85rem;
 }
 
@@ -171,62 +163,112 @@ textarea:focus {
   align-items: center;
   gap: 0.5rem;
   padding: 0.6rem 0;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
 }
 #counts {
-  color: var(--muted);
-  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* The manuscript page; its right margin holds the editor's marks. */
+.page {
+  --margin: 6ch;
+  position: relative;
+  max-width: calc(65ch + var(--margin) + 4.5rem);
+  margin: 2rem auto 30vh;
+  padding: 2.5rem calc(var(--margin) + 1.5rem) 2.5rem 3rem;
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  font-size: 16px;
+}
+@media (max-width: 760px) {
+  .page {
+    --margin: 4.5ch;
+    margin-top: 1rem;
+    padding: 1.5rem calc(var(--margin) + 0.75rem) 1.5rem 1.25rem;
+  }
 }
 
 #doc {
-  max-width: 72ch;
-  margin: 1.5rem auto 30vh;
-  padding: 2rem 2.25rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  font: 17px/1.75 Georgia, 'Iowan Old Style', serif;
+  font: 1em/2 var(--mono);
   white-space: pre-wrap;
   overflow-wrap: break-word;
 }
 #doc .empty {
   margin: 0;
-  color: var(--muted);
-  font-family: system-ui, sans-serif;
+  color: var(--graphite);
   white-space: normal;
+}
+
+#marks {
+  position: absolute;
+  top: 0;
+  right: 0.75rem;
+  width: var(--margin);
+  /* Where the margin is ruled off from the text. */
+  border-left: 1px solid var(--rule);
+  height: 100%;
+}
+.mark-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  padding-left: 0.6ch;
+  overflow: hidden;
+  white-space: nowrap;
+  line-height: 1;
+}
+.mark {
+  min-width: 1.4ch;
+  text-align: center;
+  font-weight: 700;
+  color: var(--graphite);
+  cursor: pointer;
+}
+.mark.accepted {
+  color: var(--blue);
+}
+.mark.rejected {
+  color: var(--red);
+}
+.mark.pending {
+  font-size: 1.25em;
+}
+.mark.focused {
+  box-shadow: inset 0 -2px currentColor;
 }
 
 .chg {
   cursor: pointer;
-  border-radius: 3px;
 }
 .chg del,
 .chg ins {
-  text-decoration: none;
   padding: 0 1px;
-  border-radius: 3px;
 }
 .chg del {
-  background: var(--del-bg);
-  color: var(--del-text);
-  text-decoration: line-through;
-  text-decoration-thickness: 1px;
+  background: var(--red-wash);
+  color: var(--red);
+  text-decoration: line-through 1.5px var(--red);
 }
 .chg ins {
-  background: var(--ins-bg);
-  color: var(--ins-text);
+  background: var(--blue-wash);
+  color: var(--blue);
+  text-decoration: underline 1px var(--blue);
+  text-underline-offset: 3px;
 }
 .chg.accepted {
-  text-decoration: underline 2px var(--accepted-line);
-  text-underline-offset: 4px;
+  text-decoration: underline 1px var(--blue);
+  text-underline-offset: 5px;
 }
 .chg.rejected {
-  text-decoration: underline 2px dotted var(--rejected-line);
-  text-underline-offset: 4px;
+  text-decoration: underline 1px dotted var(--graphite);
+  text-underline-offset: 5px;
 }
 .chg.focused {
-  outline: 2px solid var(--focus);
+  outline: 2px solid var(--blue);
   outline-offset: 2px;
 }
 .empty-mark {
@@ -234,11 +276,10 @@ textarea:focus {
   width: 0.4em;
   height: 0.9em;
   vertical-align: -0.1em;
-  border-radius: 2px;
-  background: var(--rejected-line);
+  background: var(--graphite);
 }
 .chg.accepted .empty-mark {
-  background: var(--accepted-line);
+  background: var(--blue);
 }
 
 /* Floating per-change actions */
@@ -248,23 +289,23 @@ textarea:focus {
   display: flex;
   gap: 2px;
   padding: 2px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
+  background: var(--sheet);
+  border: 1px solid var(--ink);
+  border-radius: 2px;
 }
 #change-actions button {
-  padding: 0.05rem 0.5rem;
-  font-size: 0.85rem;
+  padding: 0.05rem 0.55rem;
+  font-size: 0.9rem;
+  font-weight: 700;
   border: none;
 }
 #change-actions .accept {
-  color: var(--ins-text);
-  background: var(--ins-bg);
+  color: var(--blue);
+  background: var(--blue-wash);
 }
 #change-actions .reject {
-  color: var(--del-text);
-  background: var(--del-bg);
+  color: var(--red);
+  background: var(--red-wash);
 }
 #change-actions[data-decision='pending'] .undo,
 #change-actions:not([data-decision='pending']) .accept,
@@ -279,9 +320,9 @@ textarea:focus {
   bottom: 1.5rem;
   transform: translate(-50%, 1rem);
   padding: 0.5rem 1rem;
-  border-radius: 6px;
-  background: var(--text);
-  color: var(--bg);
+  border-radius: 2px;
+  background: var(--ink);
+  color: var(--sheet);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s, transform 0.15s;
@@ -295,17 +336,21 @@ textarea:focus {
   margin-left: 0.75rem;
   padding: 0.1rem 0.5rem;
   color: inherit;
-  background: transparent;
   border-color: currentColor;
-  font-weight: 600;
+  font-weight: 700;
+}
+@media (prefers-reduced-motion: reduce) {
+  #toast {
+    transition: none;
+  }
 }
 
 /* Help dialog */
 dialog {
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  color: var(--ink);
+  background: var(--sheet);
+  border: 1px solid var(--ink);
+  border-radius: 2px;
   padding: 1.25rem 1.5rem;
 }
 dialog::backdrop {
@@ -313,7 +358,7 @@ dialog::backdrop {
 }
 dialog h2 {
   margin-top: 0;
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 dialog td {
   padding: 0.25rem 1rem 0.25rem 0;
@@ -323,9 +368,9 @@ dialog form {
   text-align: right;
 }
 kbd {
-  font: 0.85em ui-monospace, monospace;
-  padding: 0.1em 0.4em;
-  border: 1px solid var(--border);
+  font: 0.9em var(--mono);
+  padding: 0.05em 0.4em;
+  border: 1px solid var(--rule);
   border-bottom-width: 2px;
-  border-radius: 4px;
+  border-radius: 2px;
 }

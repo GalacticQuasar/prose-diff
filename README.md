@@ -2,7 +2,7 @@
 
 Compare two versions of a piece of writing and merge them, one change at a time.
 
-Paste an original and a revised version to see every change inline: removed text in red, added text in green. Changes are compared word by word, not line by line, so a one-word edit doesn't flag a whole paragraph. Accept or reject each change, then copy the merged result. Everything runs in the browser; your text never leaves your machine.
+Paste an original and a revised version to see every change inline: removed text struck through in red, added text underlined in blue. Changes are compared word by word, not line by line, so a one-word edit doesn't flag a whole paragraph. Accept or reject each change, then copy the merged result. Everything runs in the browser; your text never leaves your machine.
 
 ## Usage
 
@@ -18,6 +18,7 @@ npm run build     # build static files into dist/
 ## How it works
 
 - Hover over or click a change to show its ✓ accept / ✗ reject buttons. Decided changes show ↺ Undo, so you can change your mind.
+- The right margin of the page tallies your decisions: ✓ accepted, ✗ rejected and • undecided, one row per line with changes. Click a mark to jump to its change.
 - **Accept all**, **Reject all** and **Reset** apply to every change at once.
 - **Copy result** copies the merged text. Changes you haven't decided on keep your original wording.
 - **Continue from result** starts the next round: the merged text becomes the new original and Revised is cleared for your next draft. The toast that appears has an **Undo** button that brings back the previous round.
