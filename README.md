@@ -35,7 +35,6 @@ npm run build     # build static files into dist/
 | `a` / `Enter` | Accept, then go to next undecided change |
 | `r` / `Backspace` | Reject, then go to next undecided change |
 | `u` | Undo decision |
-| `Shift`+`A` / `Shift`+`R` | Accept all / reject all |
 | `c` | Copy result |
 | `n` | Continue from result |
 | `Ctrl`+`Enter` | Compare (on the paste screen) |

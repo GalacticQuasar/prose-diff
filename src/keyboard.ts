@@ -1,5 +1,5 @@
 import { copyResult, nextRound, scrollFocusedIntoView } from './render';
-import { acceptAll, compare, decideFocused, focusStep, rejectAll, state } from './state';
+import { compare, decideFocused, focusStep, state } from './state';
 
 export function bindKeyboard(help: HTMLDialogElement) {
   document.addEventListener('keydown', (e) => {
@@ -30,8 +30,6 @@ export function bindKeyboard(help: HTMLDialogElement) {
       r: () => decideFocused('rejected'),
       Backspace: () => decideFocused('rejected'),
       u: () => decideFocused('pending'),
-      A: acceptAll,
-      R: rejectAll,
       c: () => void copyResult(),
       n: nextRound,
       '?': () => help.showModal(),

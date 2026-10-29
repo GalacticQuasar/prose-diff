@@ -169,6 +169,38 @@ textarea::placeholder {
 #counts {
   font-weight: 700;
 }
+/* Shortcut list pinned in the empty space left of the page. It spans the
+   page's height so its contents can stick below the toolbar while scrolling. */
+.keys {
+  position: absolute;
+  top: 0;
+  right: calc(100% + 1.25rem);
+  width: 11rem;
+  height: 100%;
+}
+.keys dl {
+  position: sticky;
+  top: 5rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 0.75rem;
+  margin: 0;
+  padding-top: 2.5rem;
+}
+.keys dt {
+  text-align: right;
+  white-space: nowrap;
+}
+.keys dd {
+  margin: 0;
+}
+/* Hidden once the margin beside the page is too narrow for it, and on
+   devices without a keyboard. */
+@media (max-width: 1200px), (hover: none) {
+  .keys {
+    display: none;
+  }
+}
 
 /* The manuscript page; its right margin holds the editor's marks. */
 .page {
