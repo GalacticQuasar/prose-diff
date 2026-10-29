@@ -1,5 +1,5 @@
 import { countDecisions, decisionOf, mergeResult, type Segment } from './diff';
-import { continueFromResult, decide, focus, getSegments, state } from './state';
+import { MEASURE, continueFromResult, decide, focus, getSegments, setMeasure, state } from './state';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -8,6 +8,8 @@ const reviewView = $('review-view');
 const doc = $('doc');
 const page = reviewView.querySelector<HTMLElement>('.page')!;
 const marks = $('marks');
+const keys = page.querySelector<HTMLElement>('.keys')!;
+const resizer = $('page-resizer');
 const counts = $('counts');
 const toolbar = reviewView.querySelector<HTMLElement>('.toolbar')!;
 const actions = $('change-actions');
@@ -128,6 +130,50 @@ function positionActions() {
   actions.style.top = `${rect.top + window.scrollY - actions.offsetHeight - 2}px`;
 }
 
+/** Hide the shortcut list when the page leaves no room for it on the left. */
+function fitKeys() {
+  page.classList.remove('no-keys');
+  page.classList.toggle('no-keys', keys.getBoundingClientRect().left < 8);
+}
+
+/** Show a line length on the page without committing it to state. */
+function applyMeasure(measure: number) {
+  page.style.setProperty('--measure', String(measure));
+  resizer.setAttribute('aria-valuenow', String(measure));
+  resizer.querySelector<HTMLElement>('.grip')!.dataset.label = `${measure} ch`;
+}
+
+/** Character width and the page's padding + border, for converting widths to a measure. */
+function pageGeometry() {
+  const probe = el('span', 'ch-probe', '0'.repeat(100));
+  page.append(probe);
+  const ch = probe.getBoundingClientRect().width / 100;
+  probe.remove();
+  const chrome = page.offsetWidth - doc.clientWidth;
+  // The widest measure that fits in the view.
+  const fit = Math.floor((reviewView.clientWidth - chrome) / ch);
+  return { ch, chrome, max: Math.max(MEASURE.min, Math.min(MEASURE.max, fit)) };
+}
+
+const clampMeasure = (measure: number, max: number) => Math.max(MEASURE.min, Math.min(max, Math.round(measure)));
+
+/** Widen (positive) or narrow (negative) the page by some characters. */
+export function adjustMeasure(delta: number) {
+  const { max } = pageGeometry();
+  // A measure saved on a wider window may not fit here; start from what's shown.
+  const measure = clampMeasure(Math.min(state.measure, max) + delta, max);
+  setMeasure(measure);
+  showToast(`Line width: ${measure} characters`);
+}
+
+function relayout() {
+  if (state.view === 'review') {
+    renderMarks();
+    fitKeys();
+  }
+  positionActions();
+}
+
 function applyTheme() {
   const root = document.documentElement;
   if (state.theme) root.dataset.theme = state.theme;
@@ -146,9 +192,11 @@ export function render() {
       originalInput.focus();
     }
   } else {
+    applyMeasure(state.measure);
     const segments = getSegments();
     renderDoc(segments);
     renderMarks();
+    fitKeys();
     const c = countDecisions(segments, state.decisions);
     counts.textContent = c.total ? `${c.total - c.pending} of ${c.total} decided` : 'No changes';
     if (lastView !== 'review') hoverId = null;
@@ -249,11 +297,56 @@ export function bindDocEvents() {
     decide(Number(actions.dataset.id), btn.dataset.act as 'accepted' | 'rejected' | 'pending');
   });
 
-  const relayout = () => {
-    if (state.view === 'review') renderMarks();
-    positionActions();
-  };
   window.addEventListener('resize', relayout);
   // Line breaks move once the web font replaces the fallback.
   void document.fonts.ready.then(relayout);
+}
+
+/** Drag the page's right edge (or focus it and use ←/→) to change the line length. */
+export function bindResizer() {
+  let drag: (ReturnType<typeof pageGeometry> & { center: number; measure: number }) | null = null;
+
+  resizer.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const rect = page.getBoundingClientRect();
+    drag = { ...pageGeometry(), center: rect.left + rect.width / 2, measure: state.measure };
+    resizer.setPointerCapture(e.pointerId);
+    page.classList.add('resizing');
+  });
+  resizer.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    // The page stays centred, so its width grows by twice the pointer's travel.
+    const measure = clampMeasure((2 * (e.clientX - drag.center) - drag.chrome) / drag.ch, drag.max);
+    if (measure === drag.measure) return;
+    drag.measure = measure;
+    applyMeasure(measure);
+    relayout();
+  });
+  const endDrag = () => {
+    if (!drag) return;
+    const { measure } = drag;
+    drag = null;
+    page.classList.remove('resizing');
+    setMeasure(measure);
+  };
+  resizer.addEventListener('pointerup', endDrag);
+  resizer.addEventListener('pointercancel', endDrag);
+  resizer.addEventListener('dblclick', () => setMeasure(MEASURE.default));
+
+  resizer.addEventListener('keydown', (e) => {
+    const deltas: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, PageDown: -MEASURE.step, PageUp: MEASURE.step };
+    if (e.key === 'Home' || e.key === 'End') {
+      e.preventDefault();
+      setMeasure(e.key === 'Home' ? MEASURE.min : pageGeometry().max);
+    } else if (e.key in deltas) {
+      e.preventDefault();
+      const { max } = pageGeometry();
+      setMeasure(clampMeasure(Math.min(state.measure, max) + deltas[e.key], max));
+    } else {
+      return;
+    }
+    // Keep j/k/a/r and friends from also firing.
+    e.stopPropagation();
+  });
 }

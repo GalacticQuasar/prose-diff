@@ -2,7 +2,7 @@ import '@fontsource/courier-prime/400.css';
 import '@fontsource/courier-prime/700.css';
 import './style.css';
 import { bindKeyboard } from './keyboard';
-import { bindDocEvents, copyResult, nextRound, originalInput, render, revisedInput, showToast } from './render';
+import { bindDocEvents, bindResizer, copyResult, nextRound, originalInput, render, revisedInput, showToast } from './render';
 import { acceptAll, compare, editInputs, rejectAll, resetAll, setInputs, setTheme, state, subscribe } from './state';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -39,6 +39,7 @@ document.addEventListener('click', (e) => {
 });
 
 bindDocEvents();
+bindResizer();
 bindKeyboard(help);
 subscribe(render);
 render();

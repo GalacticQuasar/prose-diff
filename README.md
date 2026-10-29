@@ -24,6 +24,7 @@ npm run build     # build static files into dist/
 - **Continue from result** starts the next round: the merged text becomes the new original and Revised is cleared for your next draft. The toast that appears has an **Undo** button that brings back the previous round.
 - Edits to spaces and line breaks are shown with `·`, `→` and `¶` markers. These only appear on screen, not in the copied text.
 - Your text and decisions are saved in the browser's local storage, so they survive a refresh. Changing the inputs and comparing again clears the decisions.
+- Drag the handle on the page's right edge to change how many characters fit on a line (30–120, as far as the window allows). Double-click it to go back to 65. You can also focus it and use the arrow keys, or press `[` and `]` anywhere. The width is saved with the rest of your session.
 - Dark mode follows your system setting. The ◐ button overrides it.
 
 ## Keyboard shortcuts
@@ -37,6 +38,7 @@ npm run build     # build static files into dist/
 | `u` | Undo decision |
 | `c` | Copy result |
 | `n` | Continue from result |
+| `[` / `]` | Narrow / widen the page |
 | `Ctrl`+`Enter` | Compare (on the paste screen) |
 | `?` | Show shortcuts |
 

@@ -11,7 +11,11 @@ export interface State {
   decisions: Decisions;
   focusedId: number | null;
   theme: Theme;
+  /** Line length of the review page, in characters. */
+  measure: number;
 }
+
+export const MEASURE = { default: 65, min: 30, max: 120, step: 5 };
 
 const STORAGE_KEY = 'prose-diff:v1';
 
@@ -23,6 +27,7 @@ const initial: State = {
   decisions: {},
   focusedId: null,
   theme: null,
+  measure: MEASURE.default,
 };
 
 function load(): State {
@@ -128,6 +133,10 @@ export function decide(id: number | null, d: Decision) {
 
 export function setTheme(theme: Theme) {
   update({ theme });
+}
+
+export function setMeasure(measure: number) {
+  if (measure !== state.measure) update({ measure });
 }
 
 export const decideFocused = (d: Decision) => decide(state.focusedId, d);

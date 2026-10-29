@@ -1,5 +1,5 @@
-import { copyResult, nextRound, scrollFocusedIntoView } from './render';
-import { compare, decideFocused, focusStep, state } from './state';
+import { adjustMeasure, copyResult, nextRound, scrollFocusedIntoView } from './render';
+import { MEASURE, compare, decideFocused, focusStep, state } from './state';
 
 export function bindKeyboard(help: HTMLDialogElement) {
   document.addEventListener('keydown', (e) => {
@@ -32,6 +32,8 @@ export function bindKeyboard(help: HTMLDialogElement) {
       u: () => decideFocused('pending'),
       c: () => void copyResult(),
       n: nextRound,
+      '[': () => adjustMeasure(-MEASURE.step),
+      ']': () => adjustMeasure(MEASURE.step),
       '?': () => help.showModal(),
     };
     const handler = handlers[e.key];
