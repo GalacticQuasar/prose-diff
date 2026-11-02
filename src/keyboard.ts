@@ -1,5 +1,5 @@
 import { adjustMeasure, copyResult, nextRound, scrollFocusedIntoView } from './render';
-import { MEASURE, compare, decideFocused, focusStep, state } from './state';
+import { MEASURE, compare, decideFocused, focusEdge, focusStep, state } from './state';
 
 export function bindKeyboard(help: HTMLDialogElement) {
   document.addEventListener('keydown', (e) => {
@@ -25,6 +25,8 @@ export function bindKeyboard(help: HTMLDialogElement) {
       ArrowDown: () => focusStep(1),
       k: () => focusStep(-1),
       ArrowUp: () => focusStep(-1),
+      g: () => focusEdge('first'),
+      G: () => focusEdge('last'),
       a: () => decideFocused('accepted'),
       Enter: () => decideFocused('accepted'),
       r: () => decideFocused('rejected'),

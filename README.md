@@ -33,6 +33,7 @@ npm run build     # build static files into dist/
 |---|---|
 | `j` / `↓` | Next change |
 | `k` / `↑` | Previous change |
+| `g` / `G` | First / last change |
 | `a` / `Enter` | Accept, then go to next undecided change |
 | `r` / `Backspace` | Reject, then go to next undecided change |
 | `u` | Undo decision |

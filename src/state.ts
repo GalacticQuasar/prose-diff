@@ -118,6 +118,10 @@ export function focusStep(delta: 1 | -1) {
   focus(ids[next]);
 }
 
+export function focusEdge(edge: 'first' | 'last') {
+  if (ids.length) focus(edge === 'first' ? ids[0] : ids[ids.length - 1]);
+}
+
 function firstPending(decisions: Decisions, after = -1): number | null {
   const ordered = [...ids.filter((id) => id > after), ...ids.filter((id) => id <= after)];
   return ordered.find((id) => decisionOf(decisions, id) === 'pending') ?? null;
