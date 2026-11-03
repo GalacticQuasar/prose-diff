@@ -1,5 +1,7 @@
-import { adjustMeasure, copyResult, nextRound, scrollFocusedIntoView } from './render';
-import { MEASURE, compare, decideFocused, focusEdge, focusStep, state } from './state';
+import { compareInputs, copyResult, nextRound } from './actions';
+import { adjustMeasure } from './measure';
+import { scrollFocusedIntoView } from './render';
+import { MEASURE, decideFocused, focusEdge, focusStep, state } from './state';
 
 export function bindKeyboard(help: HTMLDialogElement) {
   document.addEventListener('keydown', (e) => {
@@ -10,7 +12,7 @@ export function bindKeyboard(help: HTMLDialogElement) {
     if (state.view === 'paste') {
       if (typing && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
-        compare();
+        compareInputs();
       }
       if (!typing && e.key === '?') help.showModal();
       return;

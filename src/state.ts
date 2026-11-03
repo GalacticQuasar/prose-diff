@@ -54,31 +54,34 @@ export function getSegments() {
   return segments;
 }
 
-function update(patch: Partial<State>) {
-  state = { ...state, ...patch };
+function persist() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch {
     // Quota exceeded or storage disabled: keep working in memory.
   }
+}
+
+function update(patch: Partial<State>) {
+  state = { ...state, ...patch };
+  persist();
   listeners.forEach((fn) => fn());
 }
 
 export function setInputs(original: string, revised: string) {
   // Typing shouldn't re-render the whole app; just persist.
   state = { ...state, original, revised, dirty: true };
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // ignore
-  }
+  persist();
 }
 
-export function compare() {
+/** Switch to review. Returns false (and does nothing) when both inputs are empty. */
+export function compare(): boolean {
+  if (!state.original && !state.revised) return false;
   segments = buildSegments(state.original, state.revised);
   ids = changeIds(segments);
   const decisions = state.dirty ? {} : state.decisions;
   update({ view: 'review', dirty: false, decisions, focusedId: firstPending(decisions) ?? ids[0] ?? null });
+  return true;
 }
 
 export function editInputs() {
@@ -135,8 +138,11 @@ export function decide(id: number | null, d: Decision) {
   update({ decisions, focusedId: next });
 }
 
-export function setTheme(theme: Theme) {
-  update({ theme });
+/** Flip between light and dark, dropping the override when it matches the system again. */
+export function toggleTheme() {
+  const system = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  const next = (state.theme ?? system) === 'dark' ? 'light' : 'dark';
+  update({ theme: next === system ? null : next });
 }
 
 export function setMeasure(measure: number) {

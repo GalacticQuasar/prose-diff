@@ -1,21 +1,21 @@
 import '@fontsource/courier-prime/400.css';
 import '@fontsource/courier-prime/700.css';
 import './style.css';
+import { compareInputs, copyResult, nextRound } from './actions';
+import { $ } from './dom';
 import { bindKeyboard } from './keyboard';
-import { bindDocEvents, bindResizer, copyResult, nextRound, originalInput, render, revisedInput, showToast } from './render';
-import { acceptAll, compare, editInputs, rejectAll, resetAll, setInputs, setTheme, state, subscribe } from './state';
+import { bindResizer } from './measure';
+import { bindMinimap } from './minimap';
+import { bindDocEvents, originalInput, relayout, render, revisedInput } from './render';
+import { acceptAll, editInputs, rejectAll, resetAll, setInputs, subscribe, toggleTheme } from './state';
 
-const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const help = $<HTMLDialogElement>('help');
 
 const onInput = () => setInputs(originalInput.value, revisedInput.value);
 originalInput.addEventListener('input', onInput);
 revisedInput.addEventListener('input', onInput);
 
-$('compare-btn').addEventListener('click', () => {
-  if (!originalInput.value && !revisedInput.value) return showToast('Paste some text first');
-  compare();
-});
+$('compare-btn').addEventListener('click', compareInputs);
 $('edit-btn').addEventListener('click', editInputs);
 $('reset-btn').addEventListener('click', resetAll);
 $('accept-all-btn').addEventListener('click', acceptAll);
@@ -23,13 +23,7 @@ $('reject-all-btn').addEventListener('click', rejectAll);
 $('copy-btn').addEventListener('click', () => void copyResult());
 $('continue-btn').addEventListener('click', nextRound);
 $('help-btn').addEventListener('click', () => help.showModal());
-$('theme-btn').addEventListener('click', () => {
-  const systemDark = matchMedia('(prefers-color-scheme: dark)').matches;
-  const current = state.theme ?? (systemDark ? 'dark' : 'light');
-  const next = current === 'dark' ? 'light' : 'dark';
-  // Drop the override when it matches the system again.
-  setTheme(next === (systemDark ? 'dark' : 'light') ? null : next);
-});
+$('theme-btn').addEventListener('click', toggleTheme);
 
 // Mouse clicks shouldn't leave a button focused, or Enter would re-trigger it
 // instead of accepting the focused change.
@@ -39,7 +33,8 @@ document.addEventListener('click', (e) => {
 });
 
 bindDocEvents();
-bindResizer();
+bindMinimap();
+bindResizer(relayout);
 bindKeyboard(help);
 subscribe(render);
 render();

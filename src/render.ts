@@ -1,7 +1,8 @@
-import { countDecisions, decisionOf, mergeResult, type Segment } from './diff';
-import { MEASURE, continueFromResult, decide, focus, getSegments, setMeasure, state } from './state';
-
-const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+import { countDecisions, decisionOf, type Decision, type Segment } from './diff';
+import { $, el } from './dom';
+import { applyMeasure } from './measure';
+import { minimapWidth, renderMinimap, setMinimapShown } from './minimap';
+import { decide, focus, getSegments, state } from './state';
 
 const pasteView = $('paste-view');
 const reviewView = $('review-view');
@@ -9,14 +10,9 @@ const doc = $('doc');
 const page = reviewView.querySelector<HTMLElement>('.page')!;
 const marks = $('marks');
 const keys = page.querySelector<HTMLElement>('.keys')!;
-const resizer = $('page-resizer');
 const counts = $('counts');
 const toolbar = reviewView.querySelector<HTMLElement>('.toolbar')!;
 const actions = $('change-actions');
-const toast = $('toast');
-const minimap = $('minimap');
-const minimapTicks = minimap.querySelector<HTMLElement>('.ticks')!;
-const minimapViewport = minimap.querySelector<HTMLElement>('.viewport')!;
 export const originalInput = $<HTMLTextAreaElement>('original');
 export const revisedInput = $<HTMLTextAreaElement>('revised');
 
@@ -28,18 +24,6 @@ let hideTimer: number | undefined;
 function visible(text: string): string {
   if (/^[ \t]+$/.test(text)) return text.replace(/ /g, '·').replace(/\t/g, '→');
   return text.replace(/\n/g, '¶\n');
-}
-
-/** "3 undecided changes kept as original." for toasts, or '' when all are decided. */
-function keptNote(pending: number) {
-  return pending ? ` ${pending} undecided change${pending === 1 ? '' : 's'} kept as original.` : '';
-}
-
-function el(tag: string, className: string, text?: string) {
-  const node = document.createElement(tag);
-  node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
 }
 
 function renderChange(seg: Extract<Segment, { kind: 'change' }>) {
@@ -100,43 +84,6 @@ function renderMarks() {
   marks.replaceChildren(...rows.values());
 }
 
-/** Strip pixels per document pixel; the strip maps the window's whole scroll range. */
-const minimapScale = () => minimap.clientHeight / document.documentElement.scrollHeight;
-
-/** Move the minimap's box for the visible part of the document. Cheap; runs on scroll. */
-function positionViewport() {
-  const scale = minimapScale();
-  minimapViewport.style.top = `${window.scrollY * scale}px`;
-  minimapViewport.style.height = `${window.innerHeight * scale}px`;
-}
-
-/** The minimap stands in for the window's scrollbar, so hide that while it shows. */
-function setMinimapShown(shown: boolean) {
-  minimap.hidden = !shown;
-  document.documentElement.classList.toggle('minimap-on', shown);
-}
-
-/** Overview strip at the window's edge: one tick per change, coloured by decision. */
-function renderMinimap() {
-  if (minimap.hidden) return;
-  const scale = minimapScale();
-  const ticks: HTMLElement[] = [];
-  for (const chg of doc.querySelectorAll<HTMLElement>('.chg')) {
-    const rects = chg.getClientRects();
-    if (!rects.length) continue;
-    const top = (rects[0].top + window.scrollY) * scale;
-    const bottom = (rects[rects.length - 1].bottom + window.scrollY) * scale;
-    const id = Number(chg.dataset.id);
-    const tick = el('div', `tick ${decisionOf(state.decisions, id)}`);
-    if (id === state.focusedId) tick.classList.add('focused');
-    tick.style.top = `${top}px`;
-    tick.style.height = `${Math.max(3, bottom - top)}px`;
-    ticks.push(tick);
-  }
-  minimapTicks.replaceChildren(...ticks);
-  positionViewport();
-}
-
 function positionActions() {
   const id = hoverId ?? state.focusedId;
   const target = id === null ? null : doc.querySelector<HTMLElement>(`.chg[data-id="${id}"]`);
@@ -153,7 +100,7 @@ function positionActions() {
   const width = actions.offsetWidth;
   const pageRect = page.getBoundingClientRect();
   // Keep clear of the minimap strip at the window's right edge.
-  const viewportRight = document.documentElement.clientWidth - (minimap.hidden ? 0 : minimap.offsetWidth);
+  const viewportRight = document.documentElement.clientWidth - minimapWidth();
 
   // Prefer the space to the right of the page, level with the change's
   // first line, so the text stays readable.
@@ -177,37 +124,8 @@ function fitKeys() {
   page.classList.toggle('no-keys', keys.getBoundingClientRect().left < 8);
 }
 
-/** Show a line length on the page without committing it to state. */
-function applyMeasure(measure: number) {
-  page.style.setProperty('--measure', String(measure));
-  resizer.setAttribute('aria-valuenow', String(measure));
-  resizer.querySelector<HTMLElement>('.grip')!.dataset.label = `${measure} ch`;
-}
-
-/** Character width and the page's padding + border, for converting widths to a measure. */
-function pageGeometry() {
-  const probe = el('span', 'ch-probe', '0'.repeat(100));
-  page.append(probe);
-  const ch = probe.getBoundingClientRect().width / 100;
-  probe.remove();
-  const chrome = page.offsetWidth - doc.clientWidth;
-  // The widest measure that fits in the view.
-  const fit = Math.floor((reviewView.clientWidth - chrome) / ch);
-  return { ch, chrome, max: Math.max(MEASURE.min, Math.min(MEASURE.max, fit)) };
-}
-
-const clampMeasure = (measure: number, max: number) => Math.max(MEASURE.min, Math.min(max, Math.round(measure)));
-
-/** Widen (positive) or narrow (negative) the page by some characters. */
-export function adjustMeasure(delta: number) {
-  const { max } = pageGeometry();
-  // A measure saved on a wider window may not fit here; start from what's shown.
-  const measure = clampMeasure(Math.min(state.measure, max) + delta, max);
-  setMeasure(measure);
-  showToast(`Line width: ${measure} characters`);
-}
-
-function relayout() {
+/** Reposition everything placed from measured layout. */
+export function relayout() {
   if (state.view === 'review') {
     renderMarks();
     fitKeys();
@@ -225,29 +143,26 @@ function applyTheme() {
 export function render() {
   applyTheme();
   pasteView.hidden = state.view !== 'paste';
-  if (state.view === 'paste') setMinimapShown(false);
   reviewView.hidden = state.view !== 'review';
 
   if (state.view === 'paste') {
+    setMinimapShown(false);
     if (lastView !== 'paste') {
       originalInput.value = state.original;
       revisedInput.value = state.revised;
       originalInput.focus();
     }
   } else {
+    if (lastView !== 'review') hoverId = null;
     applyMeasure(state.measure);
     const segments = getSegments();
     const c = countDecisions(segments, state.decisions);
+    counts.textContent = c.total ? `${c.total - c.pending} of ${c.total} decided` : 'No changes';
     // Before measuring anything: showing the minimap hides the scrollbar, which widens the view.
     setMinimapShown(c.total > 0);
     renderDoc(segments);
-    renderMarks();
-    fitKeys();
-    counts.textContent = c.total ? `${c.total - c.pending} of ${c.total} decided` : 'No changes';
-    renderMinimap();
-    if (lastView !== 'review') hoverId = null;
   }
-  positionActions();
+  relayout();
   lastView = state.view;
 }
 
@@ -264,50 +179,6 @@ export function scrollFocusedIntoView() {
   // Center a change that fits; otherwise bring its start near the top so as much of it as possible shows below.
   const dest = height <= viewHeight ? viewTop + (viewHeight - height) / 2 : viewTop + breathingRoom;
   window.scrollTo({ top: window.scrollY + top - dest, behavior: 'smooth' });
-}
-
-export function showToast(message: string, action?: { label: string; run: () => void }) {
-  const hide = () => toast.classList.remove('show');
-  toast.textContent = message;
-  if (action) {
-    const btn = el('button', '', action.label);
-    btn.addEventListener('click', () => {
-      hide();
-      action.run();
-    });
-    toast.append(btn);
-  }
-  toast.classList.add('show');
-  window.clearTimeout(Number(toast.dataset.timer));
-  // Leave time to reach the action button.
-  toast.dataset.timer = String(window.setTimeout(hide, action ? 6000 : 1600));
-}
-
-export function nextRound() {
-  const pending = countDecisions(getSegments(), state.decisions).pending;
-  const restore = continueFromResult();
-  revisedInput.focus();
-  showToast(`Result is the new original.${keptNote(pending)}`, {
-    label: 'Undo',
-    run: restore,
-  });
-}
-
-export async function copyResult() {
-  const text = mergeResult(getSegments(), state.decisions);
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
-    // Clipboard API is unavailable on non-secure origins; fall back.
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    document.body.append(ta);
-    ta.select();
-    document.execCommand('copy');
-    ta.remove();
-  }
-  const pending = countDecisions(getSegments(), state.decisions).pending;
-  showToast(`Copied.${keptNote(pending)}`);
 }
 
 export function bindDocEvents() {
@@ -345,94 +216,10 @@ export function bindDocEvents() {
     const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-act]');
     if (!btn) return;
     hoverId = null;
-    decide(Number(actions.dataset.id), btn.dataset.act as 'accepted' | 'rejected' | 'pending');
+    decide(Number(actions.dataset.id), btn.dataset.act as Decision);
   });
-
-  let scrollFrame = 0;
-  window.addEventListener('scroll', () => {
-    if (scrollFrame) return;
-    scrollFrame = requestAnimationFrame(() => {
-      scrollFrame = 0;
-      if (state.view === 'review') positionViewport();
-    });
-  });
-
-  // The minimap works like a scrollbar: drag the viewport box to scroll, or
-  // click elsewhere on the strip to centre the view there and keep dragging.
-  // grab = where in the viewport box (strip px from its top) the pointer holds it.
-  let grab: number | null = null;
-  const scrollToPointer = (e: PointerEvent) => {
-    const y = e.clientY - minimap.getBoundingClientRect().top - grab!;
-    window.scrollTo({ top: y / minimapScale(), behavior: 'instant' });
-  };
-  minimap.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    const box = minimapViewport.getBoundingClientRect();
-    const onBox = e.clientY >= box.top && e.clientY <= box.bottom;
-    grab = onBox ? e.clientY - box.top : box.height / 2;
-    minimap.setPointerCapture(e.pointerId);
-    if (!onBox) scrollToPointer(e);
-  });
-  minimap.addEventListener('pointermove', (e) => {
-    if (grab !== null) scrollToPointer(e);
-  });
-  const endDrag = () => {
-    grab = null;
-  };
-  minimap.addEventListener('pointerup', endDrag);
-  minimap.addEventListener('pointercancel', endDrag);
 
   window.addEventListener('resize', relayout);
   // Line breaks move once the web font replaces the fallback.
   void document.fonts.ready.then(relayout);
-}
-
-/** Drag the page's right edge (or focus it and use ←/→) to change the line length. */
-export function bindResizer() {
-  let drag: (ReturnType<typeof pageGeometry> & { center: number; measure: number }) | null = null;
-
-  resizer.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    const rect = page.getBoundingClientRect();
-    drag = { ...pageGeometry(), center: rect.left + rect.width / 2, measure: state.measure };
-    resizer.setPointerCapture(e.pointerId);
-    page.classList.add('resizing');
-  });
-  resizer.addEventListener('pointermove', (e) => {
-    if (!drag) return;
-    // The page stays centred, so its width grows by twice the pointer's travel.
-    const measure = clampMeasure((2 * (e.clientX - drag.center) - drag.chrome) / drag.ch, drag.max);
-    if (measure === drag.measure) return;
-    drag.measure = measure;
-    applyMeasure(measure);
-    relayout();
-  });
-  const endDrag = () => {
-    if (!drag) return;
-    const { measure } = drag;
-    drag = null;
-    page.classList.remove('resizing');
-    setMeasure(measure);
-  };
-  resizer.addEventListener('pointerup', endDrag);
-  resizer.addEventListener('pointercancel', endDrag);
-  resizer.addEventListener('dblclick', () => setMeasure(MEASURE.default));
-
-  resizer.addEventListener('keydown', (e) => {
-    const deltas: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, PageDown: -MEASURE.step, PageUp: MEASURE.step };
-    if (e.key === 'Home' || e.key === 'End') {
-      e.preventDefault();
-      setMeasure(e.key === 'Home' ? MEASURE.min : pageGeometry().max);
-    } else if (e.key in deltas) {
-      e.preventDefault();
-      const { max } = pageGeometry();
-      setMeasure(clampMeasure(Math.min(state.measure, max) + deltas[e.key], max));
-    } else {
-      return;
-    }
-    // Keep j/k/a/r and friends from also firing.
-    e.stopPropagation();
-  });
 }
