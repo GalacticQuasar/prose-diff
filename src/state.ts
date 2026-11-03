@@ -1,4 +1,4 @@
-import { DIFF_VERSION, buildSegments, changeIds, decisionOf, mergeResult, type Decision, type Decisions, type Segment } from './diff';
+import { buildSegments, changeIds, changesKey, decisionOf, mergeResult, type Decision, type Decisions, type Segment } from './diff';
 
 export type Theme = 'light' | 'dark' | null; // null = follow system
 
@@ -13,8 +13,8 @@ export interface State {
   theme: Theme;
   /** Line length of the review page, in characters. */
   measure: number;
-  /** DIFF_VERSION the decisions were made with. */
-  diffVersion: number;
+  /** `changesKey` of the changes `decisions` refer to. */
+  decisionsKey: string;
 }
 
 export const MEASURE = { default: 65, min: 30, max: 120, step: 5 };
@@ -30,22 +30,13 @@ const initial: State = {
   focusedId: null,
   theme: null,
   measure: MEASURE.default,
-  diffVersion: DIFF_VERSION,
+  decisionsKey: '',
 };
 
 function load(): State {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed: Partial<State> = JSON.parse(raw);
-      const saved: State = { ...initial, ...parsed };
-      // Decisions from an older diff would land on the wrong changes; keep the texts.
-      // (Check the parsed value: the merge fills in the current version as a default.)
-      if (parsed.diffVersion !== DIFF_VERSION) {
-        return { ...saved, decisions: {}, focusedId: null, diffVersion: DIFF_VERSION };
-      }
-      return saved;
-    }
+    if (raw) return { ...initial, ...JSON.parse(raw) };
   } catch {
     // Corrupt or unavailable storage: start fresh.
   }
@@ -53,8 +44,21 @@ function load(): State {
 }
 
 export let state: State = load();
-let segments: Segment[] = state.view === 'review' ? buildSegments(state.original, state.revised) : [];
-let ids = changeIds(segments);
+let segments: Segment[] = [];
+let ids: number[] = [];
+
+/** Rebuild the diff; returns its `changesKey`. */
+function rebuild(original: string, revised: string) {
+  segments = buildSegments(original, revised);
+  ids = changeIds(segments);
+  return changesKey(segments);
+}
+
+if (state.view === 'review') {
+  const key = rebuild(state.original, state.revised);
+  // Saved decisions from a diff that split the texts differently would land on the wrong changes.
+  if (key !== state.decisionsKey) state = { ...state, decisions: {}, focusedId: null, decisionsKey: key };
+}
 
 const listeners = new Set<() => void>();
 
@@ -89,10 +93,9 @@ export function setInputs(original: string, revised: string) {
 /** Switch to review. Returns false (and does nothing) when both inputs are empty. */
 export function compare(): boolean {
   if (!state.original && !state.revised) return false;
-  segments = buildSegments(state.original, state.revised);
-  ids = changeIds(segments);
-  const decisions = state.dirty ? {} : state.decisions;
-  update({ view: 'review', dirty: false, decisions, focusedId: firstPending(decisions) ?? ids[0] ?? null });
+  const key = rebuild(state.original, state.revised);
+  const decisions = state.dirty || key !== state.decisionsKey ? {} : state.decisions;
+  update({ view: 'review', dirty: false, decisions, decisionsKey: key, focusedId: firstPending(decisions) ?? ids[0] ?? null });
   return true;
 }
 
@@ -108,9 +111,8 @@ export function continueFromResult() {
   const { original, revised, decisions, focusedId } = state;
   update({ view: 'paste', original: mergeResult(segments, decisions), revised: '', dirty: false, decisions: {}, focusedId: null });
   return () => {
-    segments = buildSegments(original, revised);
-    ids = changeIds(segments);
-    update({ view: 'review', original, revised, dirty: false, decisions, focusedId });
+    const decisionsKey = rebuild(original, revised);
+    update({ view: 'review', original, revised, dirty: false, decisions, decisionsKey, focusedId });
   };
 }
 

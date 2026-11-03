@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_WORD_EDITS, buildSegments, changeIds, countDecisions, mergeResult, type Decisions } from './diff';
+import { MAX_WORD_EDITS, buildSegments, changeIds, changesKey, countDecisions, mergeResult, type Decisions } from './diff';
+
+const changes = (a: string, b: string) => buildSegments(a, b).filter((s) => s.kind === 'change');
 
 const all = (ids: number[], d: Decisions[number]): Decisions =>
   Object.fromEntries(ids.map((id) => [id, d]));
@@ -28,9 +30,7 @@ const samples: [string, string][] = [
 
 describe('buildSegments', () => {
   it('flags only the changed word', () => {
-    const segs = buildSegments('The cat sat on the mat.', 'The dog sat on the mat.');
-    const changes = segs.filter((s) => s.kind === 'change');
-    expect(changes).toEqual([{ kind: 'change', id: 0, removed: 'cat', added: 'dog' }]);
+    expect(changes('The cat sat on the mat.', 'The dog sat on the mat.')).toEqual([{ kind: 'change', id: 0, removed: 'cat', added: 'dog' }]);
   });
 
   it('merges adjacent changes separated only by spaces', () => {
@@ -56,7 +56,6 @@ describe('buildSegments', () => {
 });
 
 describe('line alignment', () => {
-  const changes = (a: string, b: string) => buildSegments(a, b).filter((s) => s.kind === 'change');
 
   it('aligns an inserted list item to whole lines', () => {
     const original = '- Accept all.\n- Copy the result with one click.';
@@ -80,7 +79,6 @@ describe('line alignment', () => {
 });
 
 describe('line-first diffing', () => {
-  const changes = (a: string, b: string) => buildSegments(a, b).filter((s) => s.kind === 'change');
 
   it('keeps an insertion before an unchanged line in one piece', () => {
     expect(changes(ANSWER_BOX, ANSWER_BOX_FILLED)).toEqual([
@@ -105,11 +103,25 @@ describe('line-first diffing', () => {
       ).join('\n') + '\n';
     const original = 'Intro.\n' + words('old') + 'Outro.\n';
     const revised = 'Intro.\n' + words('new') + 'Outro.\n';
-    const segs = buildSegments(original, revised);
-    expect(segs.filter((s) => s.kind === 'change')).toEqual([
+    expect(changes(original, revised)).toEqual([
       { kind: 'change', id: 0, removed: words('old'), added: words('new') },
     ]);
-    expect(mergeResult(segs, { 0: 'accepted' })).toBe(revised);
+    expect(mergeResult(buildSegments(original, revised), { 0: 'accepted' })).toBe(revised);
+  });
+});
+
+describe('changesKey', () => {
+  const key = (a: string, b: string) => changesKey(buildSegments(a, b));
+
+  it('stays the same when only unchanged text differs', () => {
+    expect(key('The cat sat.', 'The dog sat.')).toBe(key('A cat ran.', 'A dog ran.'));
+  });
+
+  it('changes when the texts split into different changes', () => {
+    expect(key('a b c', 'a X c')).not.toBe(key('a b c', 'a Y c'));
+    expect(key('a b c d e', 'a X c Y e')).not.toBe(key('a b c d e', 'a X Y d e'));
+    // Same text overall, split differently between removed and added.
+    expect(key('ab', 'c')).not.toBe(key('a', 'bc'));
   });
 });
 

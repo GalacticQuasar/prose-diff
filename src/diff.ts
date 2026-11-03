@@ -1,12 +1,5 @@
 import { diffLines, diffWordsWithSpace } from 'diff';
 
-/**
- * Bump when a change to the diff could segment the same texts differently:
- * change ids are positional, so saved decisions from an older version would
- * land on the wrong changes.
- */
-export const DIFF_VERSION = 2;
-
 export type Decision = 'pending' | 'accepted' | 'rejected';
 export type Decisions = Record<number, Decision>;
 
@@ -74,28 +67,17 @@ function apply(prev: Part | undefined, next: Part | undefined, part: Part, befor
   part.value = value;
 }
 
-/**
- * Word diffs cost roughly size × edits, so a long run of heavily edited lines
- * can take seconds. Past this many word edits, a block is shown as a single
- * replacement instead (about 300 ms worst case). A count rather than a timeout,
- * so the same texts always split the same way.
- */
+/** Past this many word edits, a block of lines is one replacement (caps the cost at ~300 ms). */
 export const MAX_WORD_EDITS = 2000;
 
-/**
- * Diff by lines first, then by words only inside each block of changed lines.
- * This is much faster than one word diff over the whole text. It also keeps an
- * insertion in one piece: a whole-text word diff can match a few tokens of an
- * unchanged line (e.g. `\end{`) against copies inside the inserted text,
- * splitting it into several changes.
- */
+/** Diff by lines, then by words inside each block of changed lines (see CLAUDE.md). */
 function diffParts(original: string, revised: string): Part[] {
   const lines = diffLines(original, revised);
   const parts: Part[] = [];
   const push = (p: Part) => {
     const last = parts[parts.length - 1];
     if (last && last.added === p.added && last.removed === p.removed) last.value += p.value;
-    else parts.push({ value: p.value, added: p.added, removed: p.removed });
+    else parts.push({ ...p });
   };
 
   for (let i = 0; i < lines.length; i++) {
@@ -147,6 +129,22 @@ export function buildSegments(original: string, revised: string): Segment[] {
   let id = 0;
   for (const seg of out) if (seg.kind === 'change') seg.id = id++;
   return out;
+}
+
+/**
+ * Identifies how the texts were split into changes. Ids are positional, so
+ * saved decisions only apply while this stays the same.
+ */
+export function changesKey(segments: Segment[]): string {
+  let hash = 0x811c9dc5; // FNV-1a
+  for (const seg of segments) {
+    if (seg.kind !== 'change') continue;
+    for (const text of [seg.removed, seg.added]) {
+      // Terminate each text so "ab"→"c" and "a"→"bc" hash differently.
+      for (const c of text + '\0') hash = Math.imul(hash ^ c.charCodeAt(0), 0x01000193);
+    }
+  }
+  return (hash >>> 0).toString(16);
 }
 
 export function changeIds(segments: Segment[]): number[] {
