@@ -1,4 +1,11 @@
-import { diffWordsWithSpace } from 'diff';
+import { diffLines, diffWordsWithSpace } from 'diff';
+
+/**
+ * Bump when a change to the diff could segment the same texts differently:
+ * change ids are positional, so saved decisions from an older version would
+ * land on the wrong changes.
+ */
+export const DIFF_VERSION = 2;
 
 export type Decision = 'pending' | 'accepted' | 'rejected';
 export type Decisions = Record<number, Decision>;
@@ -67,8 +74,46 @@ function apply(prev: Part | undefined, next: Part | undefined, part: Part, befor
   part.value = value;
 }
 
+/**
+ * Word diffs cost roughly size × edits, so a long run of heavily edited lines
+ * can take seconds. Past this many word edits, a block is shown as a single
+ * replacement instead (about 300 ms worst case). A count rather than a timeout,
+ * so the same texts always split the same way.
+ */
+export const MAX_WORD_EDITS = 2000;
+
+/**
+ * Diff by lines first, then by words only inside each block of changed lines.
+ * This is much faster than one word diff over the whole text. It also keeps an
+ * insertion in one piece: a whole-text word diff can match a few tokens of an
+ * unchanged line (e.g. `\end{`) against copies inside the inserted text,
+ * splitting it into several changes.
+ */
+function diffParts(original: string, revised: string): Part[] {
+  const lines = diffLines(original, revised);
+  const parts: Part[] = [];
+  const push = (p: Part) => {
+    const last = parts[parts.length - 1];
+    if (last && last.added === p.added && last.removed === p.removed) last.value += p.value;
+    else parts.push({ value: p.value, added: p.added, removed: p.removed });
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const p = lines[i];
+    const q = lines[i + 1];
+    if (p.removed && q?.added) {
+      const words = diffWordsWithSpace(p.value, q.value, { maxEditLength: MAX_WORD_EDITS });
+      (words ?? [p, q]).forEach(push);
+      i++;
+    } else {
+      push(p);
+    }
+  }
+  return parts;
+}
+
 export function buildSegments(original: string, revised: string): Segment[] {
-  const parts = alignToLines(diffWordsWithSpace(original, revised));
+  const parts = alignToLines(diffParts(original, revised));
   const out: Segment[] = [];
 
   for (const part of parts) {

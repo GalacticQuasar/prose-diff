@@ -1,4 +1,4 @@
-import { buildSegments, changeIds, decisionOf, mergeResult, type Decision, type Decisions, type Segment } from './diff';
+import { DIFF_VERSION, buildSegments, changeIds, decisionOf, mergeResult, type Decision, type Decisions, type Segment } from './diff';
 
 export type Theme = 'light' | 'dark' | null; // null = follow system
 
@@ -13,6 +13,8 @@ export interface State {
   theme: Theme;
   /** Line length of the review page, in characters. */
   measure: number;
+  /** DIFF_VERSION the decisions were made with. */
+  diffVersion: number;
 }
 
 export const MEASURE = { default: 65, min: 30, max: 120, step: 5 };
@@ -28,12 +30,22 @@ const initial: State = {
   focusedId: null,
   theme: null,
   measure: MEASURE.default,
+  diffVersion: DIFF_VERSION,
 };
 
 function load(): State {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { ...initial, ...JSON.parse(raw) };
+    if (raw) {
+      const parsed: Partial<State> = JSON.parse(raw);
+      const saved: State = { ...initial, ...parsed };
+      // Decisions from an older diff would land on the wrong changes; keep the texts.
+      // (Check the parsed value: the merge fills in the current version as a default.)
+      if (parsed.diffVersion !== DIFF_VERSION) {
+        return { ...saved, decisions: {}, focusedId: null, diffVersion: DIFF_VERSION };
+      }
+      return saved;
+    }
   } catch {
     // Corrupt or unavailable storage: start fresh.
   }

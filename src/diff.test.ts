@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { buildSegments, changeIds, countDecisions, mergeResult, type Decisions } from './diff';
+import { MAX_WORD_EDITS, buildSegments, changeIds, countDecisions, mergeResult, type Decisions } from './diff';
 
 const all = (ids: number[], d: Decisions[number]): Decisions =>
   Object.fromEntries(ids.map((id) => [id, d]));
+
+// An empty answer box, then filled in with text that also contains `\end{`.
+const ANSWER_BOX = '\\begin{tcolorbox}\n\\end{tcolorbox}\n';
+const FILLED_IN = '    \\item The loss uses the end-of-epoch weights.\n\\end{itemize}\n';
+const ANSWER_BOX_FILLED = '\\begin{tcolorbox}\n' + FILLED_IN + '\\end{tcolorbox}\n';
 
 const samples: [string, string][] = [
   ['the quick brown fox\n\nHi there', 'a fast brown fox\nHi there!'],
@@ -18,6 +23,7 @@ const samples: [string, string][] = [
   ['- One.\n- Two.\n- Three.', '- One.\n- Three.'],
   ['Intro.\nBody.', 'New first line.\nIntro.\nBody.'],
   ['Body.\nEnd.', 'Body.\nEnd.\nNew last line.'],
+  [ANSWER_BOX, ANSWER_BOX_FILLED],
 ];
 
 describe('buildSegments', () => {
@@ -70,6 +76,40 @@ describe('line alignment', () => {
   it('leaves single-line edits alone', () => {
     expect(changes('a b c', 'a b b c')).toHaveLength(1);
     expect(mergeResult(buildSegments('a b c', 'a b b c'), { 0: 'accepted' })).toBe('a b b c');
+  });
+});
+
+describe('line-first diffing', () => {
+  const changes = (a: string, b: string) => buildSegments(a, b).filter((s) => s.kind === 'change');
+
+  it('keeps an insertion before an unchanged line in one piece', () => {
+    expect(changes(ANSWER_BOX, ANSWER_BOX_FILLED)).toEqual([
+      { kind: 'change', id: 0, removed: '', added: FILLED_IN },
+    ]);
+  });
+
+  it('still flags only the changed word inside a changed line', () => {
+    expect(changes('One.\nThe cat sat.\nThree.', 'One.\nThe dog sat.\nThree.')).toEqual([
+      { kind: 'change', id: 0, removed: 'cat', added: 'dog' },
+    ]);
+  });
+
+  it('splits edits at an unchanged line between them', () => {
+    expect(changeIds(buildSegments('A b c.\n\nD e f.', 'A x c.\n\nD y f.'))).toEqual([0, 1]);
+  });
+
+  it(`shows a block needing more than ${MAX_WORD_EDITS} word edits as one replacement`, () => {
+    const words = (prefix: string) =>
+      Array.from({ length: 40 }, (_, line) =>
+        Array.from({ length: 30 }, (_, w) => `${prefix}${line}_${w}`).join(' '),
+      ).join('\n') + '\n';
+    const original = 'Intro.\n' + words('old') + 'Outro.\n';
+    const revised = 'Intro.\n' + words('new') + 'Outro.\n';
+    const segs = buildSegments(original, revised);
+    expect(segs.filter((s) => s.kind === 'change')).toEqual([
+      { kind: 'change', id: 0, removed: words('old'), added: words('new') },
+    ]);
+    expect(mergeResult(segs, { 0: 'accepted' })).toBe(revised);
   });
 });
 
