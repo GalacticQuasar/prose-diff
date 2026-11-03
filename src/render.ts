@@ -130,7 +130,7 @@ function renderMinimap() {
     const tick = el('div', `tick ${decisionOf(state.decisions, id)}`);
     if (id === state.focusedId) tick.classList.add('focused');
     tick.style.top = `${top}px`;
-    tick.style.height = `${Math.max(2, bottom - top)}px`;
+    tick.style.height = `${Math.max(3, bottom - top)}px`;
     ticks.push(tick);
   }
   minimapTicks.replaceChildren(...ticks);
