@@ -19,6 +19,7 @@ npm run build     # build static files into dist/
 
 - Hover over or click a change to show its ✓ accept / ✗ reject buttons. Decided changes show ↺ Undo, so you can change your mind.
 - The right margin of the page tallies your decisions: ✓ accepted, ✗ rejected and • undecided, one row per line with changes. Click a mark to jump to its change.
+- The strip at the window's right edge maps the whole document: a tick for each change (grey undecided, blue accepted, red rejected) and a shaded box for the part you're looking at. It takes the place of the scrollbar: drag the shaded box to scroll, or click anywhere on the strip to jump there.
 - **Accept all**, **Reject all** and **Reset** apply to every change at once.
 - **Copy result** copies the merged text. Changes you haven't decided on keep your original wording.
 - **Continue from result** starts the next round: the merged text becomes the new original and Revised is cleared for your next draft. The toast that appears has an **Undo** button that brings back the previous round.

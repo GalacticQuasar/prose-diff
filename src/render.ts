@@ -14,6 +14,9 @@ const counts = $('counts');
 const toolbar = reviewView.querySelector<HTMLElement>('.toolbar')!;
 const actions = $('change-actions');
 const toast = $('toast');
+const minimap = $('minimap');
+const minimapTicks = minimap.querySelector<HTMLElement>('.ticks')!;
+const minimapViewport = minimap.querySelector<HTMLElement>('.viewport')!;
 export const originalInput = $<HTMLTextAreaElement>('original');
 export const revisedInput = $<HTMLTextAreaElement>('revised');
 
@@ -97,6 +100,43 @@ function renderMarks() {
   marks.replaceChildren(...rows.values());
 }
 
+/** Strip pixels per document pixel; the strip maps the window's whole scroll range. */
+const minimapScale = () => minimap.clientHeight / document.documentElement.scrollHeight;
+
+/** Move the minimap's box for the visible part of the document. Cheap; runs on scroll. */
+function positionViewport() {
+  const scale = minimapScale();
+  minimapViewport.style.top = `${window.scrollY * scale}px`;
+  minimapViewport.style.height = `${window.innerHeight * scale}px`;
+}
+
+/** The minimap stands in for the window's scrollbar, so hide that while it shows. */
+function setMinimapShown(shown: boolean) {
+  minimap.hidden = !shown;
+  document.documentElement.classList.toggle('minimap-on', shown);
+}
+
+/** Overview strip at the window's edge: one tick per change, coloured by decision. */
+function renderMinimap() {
+  if (minimap.hidden) return;
+  const scale = minimapScale();
+  const ticks: HTMLElement[] = [];
+  for (const chg of doc.querySelectorAll<HTMLElement>('.chg')) {
+    const rects = chg.getClientRects();
+    if (!rects.length) continue;
+    const top = (rects[0].top + window.scrollY) * scale;
+    const bottom = (rects[rects.length - 1].bottom + window.scrollY) * scale;
+    const id = Number(chg.dataset.id);
+    const tick = el('div', `tick ${decisionOf(state.decisions, id)}`);
+    if (id === state.focusedId) tick.classList.add('focused');
+    tick.style.top = `${top}px`;
+    tick.style.height = `${Math.max(2, bottom - top)}px`;
+    ticks.push(tick);
+  }
+  minimapTicks.replaceChildren(...ticks);
+  positionViewport();
+}
+
 function positionActions() {
   const id = hoverId ?? state.focusedId;
   const target = id === null ? null : doc.querySelector<HTMLElement>(`.chg[data-id="${id}"]`);
@@ -112,7 +152,8 @@ function positionActions() {
   const rects = target.getClientRects();
   const width = actions.offsetWidth;
   const pageRect = page.getBoundingClientRect();
-  const viewportRight = document.documentElement.clientWidth;
+  // Keep clear of the minimap strip at the window's right edge.
+  const viewportRight = document.documentElement.clientWidth - (minimap.hidden ? 0 : minimap.offsetWidth);
 
   // Prefer the space to the right of the page, level with the change's
   // first line, so the text stays readable.
@@ -170,6 +211,7 @@ function relayout() {
   if (state.view === 'review') {
     renderMarks();
     fitKeys();
+    renderMinimap();
   }
   positionActions();
 }
@@ -183,6 +225,7 @@ function applyTheme() {
 export function render() {
   applyTheme();
   pasteView.hidden = state.view !== 'paste';
+  if (state.view === 'paste') setMinimapShown(false);
   reviewView.hidden = state.view !== 'review';
 
   if (state.view === 'paste') {
@@ -194,11 +237,14 @@ export function render() {
   } else {
     applyMeasure(state.measure);
     const segments = getSegments();
+    const c = countDecisions(segments, state.decisions);
+    // Before measuring anything: showing the minimap hides the scrollbar, which widens the view.
+    setMinimapShown(c.total > 0);
     renderDoc(segments);
     renderMarks();
     fitKeys();
-    const c = countDecisions(segments, state.decisions);
     counts.textContent = c.total ? `${c.total - c.pending} of ${c.total} decided` : 'No changes';
+    renderMinimap();
     if (lastView !== 'review') hoverId = null;
   }
   positionActions();
@@ -296,6 +342,41 @@ export function bindDocEvents() {
     hoverId = null;
     decide(Number(actions.dataset.id), btn.dataset.act as 'accepted' | 'rejected' | 'pending');
   });
+
+  let scrollFrame = 0;
+  window.addEventListener('scroll', () => {
+    if (scrollFrame) return;
+    scrollFrame = requestAnimationFrame(() => {
+      scrollFrame = 0;
+      if (state.view === 'review') positionViewport();
+    });
+  });
+
+  // The minimap works like a scrollbar: drag the viewport box to scroll, or
+  // click elsewhere on the strip to centre the view there and keep dragging.
+  // grab = where in the viewport box (strip px from its top) the pointer holds it.
+  let grab: number | null = null;
+  const scrollToPointer = (e: PointerEvent) => {
+    const y = e.clientY - minimap.getBoundingClientRect().top - grab!;
+    window.scrollTo({ top: y / minimapScale(), behavior: 'instant' });
+  };
+  minimap.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const box = minimapViewport.getBoundingClientRect();
+    const onBox = e.clientY >= box.top && e.clientY <= box.bottom;
+    grab = onBox ? e.clientY - box.top : box.height / 2;
+    minimap.setPointerCapture(e.pointerId);
+    if (!onBox) scrollToPointer(e);
+  });
+  minimap.addEventListener('pointermove', (e) => {
+    if (grab !== null) scrollToPointer(e);
+  });
+  const endDrag = () => {
+    grab = null;
+  };
+  minimap.addEventListener('pointerup', endDrag);
+  minimap.addEventListener('pointercancel', endDrag);
 
   window.addEventListener('resize', relayout);
   // Line breaks move once the web font replaces the fallback.
