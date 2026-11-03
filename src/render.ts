@@ -254,11 +254,16 @@ export function render() {
 export function scrollFocusedIntoView() {
   const target = doc.querySelector<HTMLElement>('.chg.focused');
   if (!target) return;
-  // Keep the change clear of the sticky toolbar (its height varies when it wraps) with some breathing room.
+  // The visible area is what's below the sticky toolbar (its height varies when it wraps).
+  const viewTop = toolbar.offsetHeight;
+  const viewHeight = window.innerHeight - viewTop;
   const breathingRoom = Math.round(window.innerHeight * 0.15);
-  target.style.scrollMarginTop = `${toolbar.offsetHeight + breathingRoom}px`;
-  target.style.scrollMarginBottom = `${breathingRoom}px`;
-  target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  const { top, bottom, height } = target.getBoundingClientRect();
+  // Leave the view alone if the whole change is already comfortably visible (e.g. stepping between nearby changes).
+  if (top >= viewTop + breathingRoom && bottom <= window.innerHeight - breathingRoom) return;
+  // Center a change that fits; otherwise bring its start near the top so as much of it as possible shows below.
+  const dest = height <= viewHeight ? viewTop + (viewHeight - height) / 2 : viewTop + breathingRoom;
+  window.scrollTo({ top: window.scrollY + top - dest, behavior: 'smooth' });
 }
 
 export function showToast(message: string, action?: { label: string; run: () => void }) {
