@@ -18,7 +18,7 @@ No linter is configured. `npm run build` is the type check (`strict`, `noUnusedL
 
 ## What it is
 
-Prose Diff is a browser app with no framework, plus a CLI, published to npm as [`prose-diff`](https://www.npmjs.com/package/prose-diff). In the web app (hosted at https://prose-diff.vercel.app, a static build of `dist/`) you paste an original and a revised text, review word-level changes inline, accept or reject each one, and copy the merged result. In file mode, `prose-diff <file>` snapshots a file and serves the same app locally; you review the file's edits since the snapshot and apply the merged result back to the file. The user-facing behavior and keyboard shortcuts are documented in README.md. Keep the README's "How it works" and "Keyboard shortcuts" sections, and the in-app help dialog in `index.html`, in sync when behavior changes.
+Prose Diff is a browser app with no framework, plus a CLI, published to npm as [`prose-diff`](https://www.npmjs.com/package/prose-diff). In the web app (hosted at https://prose-diff.vercel.app, a static build of `dist/`) you paste an original and a revised text, review word-level changes inline, accept or reject each one, and copy the merged result. In file mode, `prose-diff <file>` snapshots a file and serves the same app locally; you review the file's edits since the snapshot and apply the merged result back to the file. The user-facing behavior and keyboard shortcuts are documented in README.md. Keep the README's "How it works" and "Keyboard shortcuts" sections, and the in-app help dialog in `index.html`, in sync when behavior changes. Planned work is tracked in `TODO.md`; check items off there when they land.
 
 ## Architecture
 
@@ -39,14 +39,4 @@ The data flow goes in one direction: `diff.ts` (pure) → `state.ts` (store) →
 
 ## Releasing
 
-Releases go to npm from `main`. Bump the version with `npm version patch` (or `minor`/`major`), which commits and creates an annotated `vX.Y.Z` tag. Then run `git push --follow-tags` and `npm publish`. The user runs `npm publish` themselves. `prepublishOnly` runs the tests and a full build. A published version can never be reused. The latest published version is 0.1.1 (tag `v0.1.1`).
-
-## Status and next steps
-
-Done: the web app; file mode (`prose-diff <file>`) with apply, conflict detection (409), the on-disk change notice, and exact line-ending/UTF-8 handling; npm packaging (latest 0.1.1).
-
-Planned, not started:
-- `--open`: launch the browser on startup (`xdg-open`; `wslview` or `cmd.exe /c start` on WSL).
-- A dev proxy: `vite.config.ts` proxying `/api` to a running `prose-diff` (e.g. when `PROSE_DIFF_API` is set), plus a CLI flag to serve only the API, so `npm run dev` works in file mode.
-- Replace the native `confirm()` before applying with undecided changes with a dialog in the app's style.
-- Later, if wanted: several files per session, snapshots persisted on disk (`--resume`), undo for the last apply, keeping decisions across a reload for changes that are still identical.
+Releases go to npm from `main`. Bump the version with `npm version patch` (or `minor`/`major`), which commits and creates an annotated `vX.Y.Z` tag. Then run `git push --follow-tags` and `npm publish`. The user runs `npm publish` themselves. `prepublishOnly` runs the tests and a full build. A published version can never be reused.
