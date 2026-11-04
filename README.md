@@ -15,15 +15,15 @@ Open [prose-diff.vercel.app](https://prose-diff.vercel.app), paste the two versi
 
 ## Command line
 
-The command line tool runs from a clone of this repo:
+Requires Node.js 20 or later.
 
 ```sh
-npm install
-npm run build && npm link   # once: puts `prose-diff` on your PATH
-prose-diff draft.md          # saves draft.md as the original and prints a link
+npx prose-diff draft.md          # run it without installing
+npm install -g prose-diff        # or install the `prose-diff` command
+prose-diff draft.md              # saves draft.md as the original and prints a link
 ```
 
-`npm link` puts a global symlink to this repo on your PATH, so changes to the repo take effect without linking again (run `npm run build` after changing the app). With nvm, the link only exists for the Node version that was active when you ran it. To remove it, run `npm rm -g prose-diff`.
+To uninstall, run `npm rm -g prose-diff`.
 
 Edit `draft.md` however you like (by hand, or with Claude Code or another tool). Then open the printed link to review the original against the file as it is now. **Apply to file** (`w`) writes the merged result back to `draft.md`. Undecided changes are reverted to the original, after you confirm. The merged text becomes the new original, so you can keep editing and reviewing in rounds until you stop `prose-diff` with Ctrl+C.
 
@@ -70,10 +70,14 @@ The page is served by `prose-diff` itself on your machine, not by the hosted web
 npm install
 npm run dev       # start the dev server
 npm test          # run unit tests
-npm run build     # type-check, then build static files into dist/
+npm run build     # type-check, build the app into dist/ and the CLI into dist-cli/
 ```
 
 `dist/` is plain static files, so you can host it anywhere or serve it locally with `npm run preview`.
+
+To try the command line tool from your clone, run `cli/prose-diff.ts <file>` directly (Node 22.18 or later runs the TypeScript as is), or put `prose-diff` on your PATH with `npm run build && npm link`. The link is a global symlink to your clone, so changes take effect without linking again (run `npm run build` after changing the app or the CLI). With nvm, the link only exists for the Node version that was active when you ran it. To remove it, run `npm rm -g prose-diff`.
+
+`npm publish` runs the tests and a full build first (`prepublishOnly`). The package contains only `dist/`, `dist-cli/`, the README, the license and `package.json`; check with `npm pack --dry-run`.
 
 ## Project layout
 

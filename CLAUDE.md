@@ -8,12 +8,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev                          # Vite dev server
 npm test                             # Vitest, single run
 npx vitest run -t "flags only"       # run tests whose name matches
-npm run build                        # tsc type-check (noEmit), then vite build into dist/
+npm run build                        # type-check, vite build into dist/, compile the CLI into dist-cli/
 npm run preview                      # serve dist/
-cli/prose-diff.ts <file>             # file mode (needs a build); `npm link` installs it as `prose-diff`
+cli/prose-diff.ts <file>             # file mode from source (needs dist/ built)
+npm pack --dry-run                   # list what `npm publish` would ship
 ```
 
-No linter is configured. `npm run build` is the type check (`strict`, `noUnusedLocals`, `noUnusedParameters`, `verbatimModuleSyntax`, so type-only imports need `import type` / `type X`). It checks `src/` with `tsconfig.json` and `cli/` with `tsconfig.cli.json`. The CLI runs as TypeScript directly through Node's type stripping (no build step), so `cli/` imports use `.ts` extensions and only erasable syntax (no enums or parameter properties).
+No linter is configured. `npm run build` is the type check (`strict`, `noUnusedLocals`, `noUnusedParameters`, `verbatimModuleSyntax`, so type-only imports need `import type` / `type X`). It checks `src/` with `tsconfig.json` and `cli/` with `tsconfig.cli.json`. In the repo the CLI runs as TypeScript directly through Node's type stripping, so `cli/` imports use `.ts` extensions and only erasable syntax (no enums or parameter properties). Node won't strip types inside `node_modules`, so the published package's `bin` is the compiled `dist-cli/prose-diff.js` (`tsconfig.cli.build.json`, which rewrites the `.ts` imports and skips tests). The package ships no runtime dependencies: Vite bundles `diff` and the font into `dist/`, and the CLI uses Node built-ins only, so everything is a devDependency. It supports Node 20+ (`engines`), so the CLI must not use newer Node APIs.
 
 ## What it is
 

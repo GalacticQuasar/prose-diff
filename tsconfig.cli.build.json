@@ -1,0 +1,12 @@
+{
+  // Compiles the CLI to JavaScript for the npm package: Node won't run
+  // TypeScript from inside node_modules.
+  "extends": "./tsconfig.cli.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist-cli",
+    "rootDir": "cli",
+    "rewriteRelativeImportExtensions": true
+  },
+  "exclude": ["cli/**/*.test.ts"]
+}
