@@ -10,6 +10,7 @@
   --red-wash: #fbe7ea;
   --blue: #1f5fad;
   --blue-wash: #e6eef8;
+  --minimap-width: 22px;
   --mono: 'Courier Prime', 'Courier New', ui-monospace, monospace;
   color-scheme: light;
 }
@@ -402,7 +403,7 @@ textarea::placeholder {
   bottom: 0;
   right: 0;
   z-index: 6;
-  width: 22px;
+  width: var(--minimap-width);
   background: var(--paper);
   border-left: 1px solid var(--rule);
   cursor: pointer;
@@ -411,9 +412,13 @@ textarea::placeholder {
 #minimap[hidden] {
   display: none;
 }
-/* The minimap replaces the window's scrollbar while it's shown. */
+/* The minimap replaces the window's scrollbar while it's shown, and like a
+   scrollbar it takes its width from the page, so nothing sits under it. */
 html.minimap-on {
   scrollbar-width: none;
+}
+html.minimap-on body {
+  padding-right: var(--minimap-width);
 }
 html.minimap-on::-webkit-scrollbar {
   display: none;
