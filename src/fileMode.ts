@@ -8,14 +8,23 @@ export interface Session {
   original: string;
   revised: string;
   revisedHash: string;
+  originalHash: string;
+}
+
+export interface Status {
+  originalHash: string;
+  revisedHash: string;
 }
 
 export const fileToken = new URLSearchParams(location.search).get('t');
 export const isFileMode = fileToken !== null;
 
-export type Result = { ok: true; session: Session } | { ok: false; error: string; status?: number };
+export type Result<T = Session> = { ok: true; data: T } | { ok: false; error: string; status?: number };
 
-async function call(path: string, init: RequestInit = {}): Promise<Result> {
+const SESSION_KEYS = ['path', 'name', 'original', 'revised', 'revisedHash', 'originalHash'] as const;
+const STATUS_KEYS = ['originalHash', 'revisedHash'] as const;
+
+async function call<T>(path: string, keys: readonly (keyof T & string)[], init: RequestInit = {}): Promise<Result<T>> {
   let res: Response;
   try {
     res = await fetch(path, { ...init, headers: { ...init.headers, 'X-Prose-Diff-Token': fileToken ?? '' } });
@@ -24,9 +33,8 @@ async function call(path: string, init: RequestInit = {}): Promise<Result> {
   }
   const body = await res.json().catch(() => ({}));
   if (res.ok) {
-    const s = body as Partial<Session>;
-    const valid = (['path', 'name', 'original', 'revised', 'revisedHash'] as const).every((k) => typeof s[k] === 'string');
-    return valid ? { ok: true, session: s as Session } : { ok: false, error: 'This page wasn’t opened from prose-diff, or it answered unexpectedly.' };
+    const valid = keys.every((k) => typeof (body as Record<string, unknown>)[k] === 'string');
+    return valid ? { ok: true, data: body as T } : { ok: false, error: 'This page wasn’t opened from prose-diff, or it answered unexpectedly.' };
   }
   const error =
     res.status === 403
@@ -35,10 +43,12 @@ async function call(path: string, init: RequestInit = {}): Promise<Result> {
   return { ok: false, error, status: res.status };
 }
 
-export const fetchSession = () => call('/api/session', { cache: 'no-store' });
+export const fetchSession = () => call<Session>('/api/session', SESSION_KEYS, { cache: 'no-store' });
+
+export const fetchStatus = () => call<Status>('/api/status', STATUS_KEYS, { cache: 'no-store' });
 
 export const applyMerged = (merged: string, revisedHash: string) =>
-  call('/api/apply', {
+  call<Session>('/api/apply', SESSION_KEYS, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ merged, revisedHash }),

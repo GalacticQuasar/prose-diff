@@ -13,6 +13,7 @@ const marks = $('marks');
 const keys = page.querySelector<HTMLElement>('.keys')!;
 const counts = $('counts');
 const fileName = $('file-name');
+const fileStale = $('file-stale');
 const toolbar = reviewView.querySelector<HTMLElement>('.toolbar')!;
 const actions = $('change-actions');
 export const originalInput = $<HTMLTextAreaElement>('original');
@@ -52,7 +53,7 @@ function emptyMessage() {
   if (!isFileMode) return 'No differences — the two texts are identical.';
   if (state.fileError) return state.fileError;
   if (!state.file) return 'Loading…';
-  return `No changes to ${state.file.name} yet. Edit the file, then refresh this page.`;
+  return `No changes to ${state.file.name} yet. This page updates when the file changes.`;
 }
 
 function renderDoc(segments: Segment[]) {
@@ -171,6 +172,7 @@ export function render() {
       fileName.textContent = state.file ? `in ${state.file.name}` : '';
       fileName.title = state.file?.path ?? '';
       document.title = state.file ? `${state.file.name} · Prose Diff` : 'Prose Diff';
+      fileStale.hidden = !(state.file && state.fileStale);
     }
     // Before measuring anything: showing the minimap hides the scrollbar, which widens the view.
     setMinimapShown(c.total > 0);

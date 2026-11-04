@@ -36,6 +36,10 @@
         <div class="toolbar">
           <span id="counts"></span>
           <span id="file-name" data-mode="file"></span>
+          <span id="file-stale" data-mode="file" role="status" hidden>
+            Changed on disk.
+            <button id="reload-btn" title="Show the file as it is now. This usually clears your decisions.">Reload</button>
+          </span>
           <span class="spacer"></span>
           <button id="edit-btn" data-mode="paste">Edit inputs</button>
           <button id="reset-btn">Reset</button>

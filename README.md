@@ -25,7 +25,9 @@ prose-diff draft.md          # saves draft.md as the original and prints a link
 
 `npm link` puts a global symlink to this repo on your PATH, so changes to the repo take effect without linking again (run `npm run build` after changing the app). With nvm, the link only exists for the Node version that was active when you ran it. To remove it, run `npm rm -g prose-diff`.
 
-Edit `draft.md` however you like (by hand, or with Claude Code or another tool). Then open the printed link, or refresh it, to review the original against the file as it is now. **Apply to file** (`w`) writes the merged result back to `draft.md`. Undecided changes are reverted to the original, after you confirm. The merged text becomes the new original, so you can keep editing and reviewing in rounds until you stop `prose-diff` with Ctrl+C. If the file changed again after you loaded the page, Apply refuses to write and offers to reload.
+Edit `draft.md` however you like (by hand, or with Claude Code or another tool). Then open the printed link to review the original against the file as it is now. **Apply to file** (`w`) writes the merged result back to `draft.md`. Undecided changes are reverted to the original, after you confirm. The merged text becomes the new original, so you can keep editing and reviewing in rounds until you stop `prose-diff` with Ctrl+C.
+
+While the page is open, it notices when the file changes on disk. If you haven't decided anything yet, it shows the new version right away. Otherwise the toolbar says **Changed on disk** with a **Reload** button, so you choose when to reload. Reloading usually clears your decisions, because they belong to the old set of changes. If you apply anyway, Apply refuses to write the file and nothing is lost.
 
 The page is served by `prose-diff` itself on your machine, not by the hosted web app. The server only listens on 127.0.0.1, and the link carries a token the page needs to read or write the file. Decisions survive a refresh as long as the file hasn't changed. They're kept per tab, separately from the texts saved in paste mode.
 

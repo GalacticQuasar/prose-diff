@@ -3,7 +3,7 @@ import { request } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { startServer, type ProseServer, type Session } from './server.ts';
+import { startServer, type ProseServer, type Session, type Status } from './server.ts';
 
 const TOKEN = 'test-token';
 
@@ -56,6 +56,29 @@ describe('session', () => {
     s = await getSession();
     expect(s.original).toBe('The quick brown fox.\n');
     expect(s.revised).toBe('The quick red fox.\n');
+  });
+});
+
+describe('status', () => {
+  it('matches the session hashes and changes with the file and on apply', async () => {
+    const getStatus = async () => (await call('/api/status')).json() as Status;
+    const s = await getSession();
+    const before = await getStatus();
+    expect(before).toEqual({ originalHash: s.originalHash, revisedHash: s.revisedHash });
+
+    await writeFile(file, 'The quick red fox.\n');
+    const edited = await getStatus();
+    expect(edited.originalHash).toBe(before.originalHash);
+    expect(edited.revisedHash).not.toBe(before.revisedHash);
+
+    await call('/api/apply', { method: 'POST', body: { merged: 'The quick red dog.\n', revisedHash: edited.revisedHash } });
+    const applied = await getStatus();
+    expect(applied.originalHash).not.toBe(before.originalHash);
+    expect(applied.originalHash).toBe((await getSession()).originalHash);
+  });
+
+  it('requires the token', async () => {
+    expect((await call('/api/status', { token: null })).status).toBe(403);
   });
 });
 

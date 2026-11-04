@@ -175,6 +175,15 @@ textarea::placeholder {
 #counts {
   font-weight: 700;
 }
+#file-stale {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.15rem 0.25rem 0.15rem 0.6rem;
+  background: var(--red-wash);
+  color: var(--red);
+  font-weight: 700;
+}
 #file-name {
   color: var(--graphite);
   overflow: hidden;

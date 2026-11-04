@@ -1,7 +1,7 @@
 import '@fontsource/courier-prime/400.css';
 import '@fontsource/courier-prime/700.css';
 import './style.css';
-import { applyToFile, compareInputs, copyResult, loadFile, nextRound } from './actions';
+import { applyToFile, compareInputs, copyResult, loadFile, nextRound, reloadFile, watchFile } from './actions';
 import { $ } from './dom';
 import { isFileMode } from './fileMode';
 import { bindKeyboard } from './keyboard';
@@ -24,6 +24,7 @@ $('reject-all-btn').addEventListener('click', rejectAll);
 $('copy-btn').addEventListener('click', () => void copyResult());
 $('continue-btn').addEventListener('click', nextRound);
 $('apply-btn').addEventListener('click', () => void applyToFile());
+$('reload-btn').addEventListener('click', () => void reloadFile());
 $('help-btn').addEventListener('click', () => help.showModal());
 $('theme-btn').addEventListener('click', toggleTheme);
 
@@ -45,4 +46,4 @@ if (isFileMode) {
 }
 subscribe(render);
 render();
-if (isFileMode) void loadFile();
+if (isFileMode) void loadFile().then(watchFile);

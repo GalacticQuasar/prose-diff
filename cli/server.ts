@@ -14,6 +14,14 @@ export interface Session {
   revised: string;
   /** Hash of the file's bytes on disk, echoed back on apply to detect later edits. */
   revisedHash: string;
+  /** Hash of `original`, so a page can tell when another tab applied. */
+  originalHash: string;
+}
+
+/** What the page polls to notice changes, without transferring the texts. */
+export interface Status {
+  originalHash: string;
+  revisedHash: string;
 }
 
 export interface ServerOptions {
@@ -103,11 +111,16 @@ export async function startServer(opts: ServerOptions): Promise<ProseServer> {
   const token = opts.token ?? randomBytes(16).toString('hex');
   const tokenBuf = Buffer.from(token);
   let original = (await readText(path)).text;
+  let originalHash = sha256(original);
   let port = 0;
 
   async function session(): Promise<Session> {
     const { text, hash } = await readText(path);
-    return { path, name, original, revised: text, revisedHash: hash };
+    return { path, name, original, revised: text, revisedHash: hash, originalHash };
+  }
+
+  async function status(): Promise<Status> {
+    return { originalHash, revisedHash: (await readText(path)).hash };
   }
 
   function authorized(req: IncomingMessage) {
@@ -129,6 +142,7 @@ export async function startServer(opts: ServerOptions): Promise<ProseServer> {
     const merged = body.merged.replace(/\r\n/g, '\n');
     await writeAtomic(path, current.crlf ? merged.replace(/\n/g, '\r\n') : merged);
     original = merged;
+    originalHash = sha256(merged);
     return session();
   }
 
@@ -158,6 +172,7 @@ export async function startServer(opts: ServerOptions): Promise<ProseServer> {
       // so other pages can't call the API even if they guess the port.
       if (!authorized(req)) throw new HttpError(403, 'Missing or wrong token');
       if (pathname === '/api/session' && req.method === 'GET') return send(res, 200, await session());
+      if (pathname === '/api/status' && req.method === 'GET') return send(res, 200, await status());
       if (pathname === '/api/apply' && req.method === 'POST') return send(res, 200, await apply(req));
       throw new HttpError(404, 'Not found');
     }
