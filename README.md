@@ -1,5 +1,7 @@
 # Prose Diff
 
+[![npm](https://img.shields.io/npm/v/prose-diff)](https://www.npmjs.com/package/prose-diff)
+
 Compare two versions of a piece of writing and merge them, one change at a time.
 
 Every change is shown inline: removed text struck through in red, added text underlined in blue. Changes are compared word by word, not line by line, so a one-word edit doesn't flag a whole paragraph. Accept or reject each change, then take the merged result.
