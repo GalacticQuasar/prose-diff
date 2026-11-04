@@ -1,6 +1,6 @@
 {
   "name": "prose-diff",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Review and merge changes to prose word by word: a web app, and a CLI for edits to a file on disk (by hand or by an AI agent).",
   "keywords": [
     "diff",
