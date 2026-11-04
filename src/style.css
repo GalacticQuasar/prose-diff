@@ -57,6 +57,12 @@ body {
   display: none !important;
 }
 
+/* Controls that only apply to pasted texts or to a file opened with `prose-diff <file>`. */
+html:not(.file-mode) [data-mode="file"],
+html.file-mode [data-mode="paste"] {
+  display: none !important;
+}
+
 button {
   font: inherit;
   color: var(--ink);
@@ -168,6 +174,13 @@ textarea::placeholder {
 }
 #counts {
   font-weight: 700;
+}
+#file-name {
+  color: var(--graphite);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 /* Shortcut list pinned in the empty space left of the page. It spans the
    page's height so its contents can stick below the toolbar while scrolling. */

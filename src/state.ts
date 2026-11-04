@@ -1,6 +1,15 @@
 import { buildSegments, changeIds, changesKey, decisionOf, mergeResult, type Decision, type Decisions, type Segment } from './diff';
+import { isFileMode, type Session } from './fileMode';
 
 export type Theme = 'light' | 'dark' | null; // null = follow system
+
+/** The file under review in file mode. */
+export interface FileInfo {
+  path: string;
+  name: string;
+  /** Echoed back on apply so the server can refuse if the file changed since. */
+  revisedHash: string;
+}
 
 export interface State {
   view: 'paste' | 'review';
@@ -15,11 +24,20 @@ export interface State {
   measure: number;
   /** `changesKey` of the changes `decisions` refer to. */
   decisionsKey: string;
+  /** File mode only: the file being reviewed, once its session has loaded. */
+  file: FileInfo | null;
+  /** File mode only: why the session couldn't be loaded. */
+  fileError: string | null;
 }
 
 export const MEASURE = { default: 65, min: 30, max: 120, step: 5 };
 
 const STORAGE_KEY = 'prose-diff:v1';
+/**
+ * File mode keeps its decisions per tab, so it never overwrites the pasted
+ * texts saved under STORAGE_KEY; only theme and page width are shared.
+ */
+const FILE_KEY = 'prose-diff:file';
 
 const initial: State = {
   view: 'paste',
@@ -31,16 +49,26 @@ const initial: State = {
   theme: null,
   measure: MEASURE.default,
   decisionsKey: '',
+  file: null,
+  fileError: null,
 };
 
-function load(): State {
+function read(storage: Storage, key: string): Partial<State> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { ...initial, ...JSON.parse(raw) };
+    return JSON.parse(storage.getItem(key) ?? '{}') ?? {};
   } catch {
     // Corrupt or unavailable storage: start fresh.
+    return {};
   }
-  return { ...initial };
+}
+
+function load(): State {
+  const saved = read(localStorage, STORAGE_KEY);
+  if (!isFileMode) return { ...initial, ...saved, file: null, fileError: null };
+  // The texts come from the server (see openSession); until then show review with no changes.
+  const { decisions, decisionsKey, focusedId } = { ...initial, ...read(sessionStorage, FILE_KEY) };
+  const { theme, measure } = { ...initial, ...saved };
+  return { ...initial, view: 'review', theme, measure, decisions, decisionsKey, focusedId };
 }
 
 export let state: State = load();
@@ -54,7 +82,7 @@ function rebuild(original: string, revised: string) {
   return changesKey(segments);
 }
 
-if (state.view === 'review') {
+if (state.view === 'review' && !isFileMode) {
   const key = rebuild(state.original, state.revised);
   // Saved decisions from a diff that split the texts differently would land on the wrong changes.
   if (key !== state.decisionsKey) state = { ...state, decisions: {}, focusedId: null, decisionsKey: key };
@@ -72,7 +100,13 @@ export function getSegments() {
 
 function persist() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (isFileMode) {
+      const { decisions, decisionsKey, focusedId, theme, measure } = state;
+      sessionStorage.setItem(FILE_KEY, JSON.stringify({ decisions, decisionsKey, focusedId }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...read(localStorage, STORAGE_KEY), theme, measure }));
+    } else {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, file: null, fileError: null }));
+    }
   } catch {
     // Quota exceeded or storage disabled: keep working in memory.
   }
@@ -97,6 +131,34 @@ export function compare(): boolean {
   const decisions = state.dirty || key !== state.decisionsKey ? {} : state.decisions;
   update({ view: 'review', dirty: false, decisions, decisionsKey: key, focusedId: firstPending(decisions) ?? ids[0] ?? null });
   return true;
+}
+
+/**
+ * File mode: show the file's session. Decisions survive (e.g. a refresh) only
+ * while the diff splits into the same changes.
+ */
+export function openSession(session: Session) {
+  const { path, name, original, revised, revisedHash } = session;
+  const key = rebuild(original, revised);
+  const keep = key === state.decisionsKey;
+  const decisions = keep ? state.decisions : {};
+  const focusedId =
+    keep && state.focusedId !== null && ids.includes(state.focusedId) ? state.focusedId : (firstPending(decisions) ?? ids[0] ?? null);
+  update({
+    view: 'review',
+    original,
+    revised,
+    dirty: false,
+    decisions,
+    decisionsKey: key,
+    focusedId,
+    file: { path, name, revisedHash },
+    fileError: null,
+  });
+}
+
+export function setFileError(fileError: string) {
+  update({ fileError });
 }
 
 export function editInputs() {

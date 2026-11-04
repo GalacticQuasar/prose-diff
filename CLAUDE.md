@@ -10,9 +10,10 @@ npm test                             # Vitest, single run
 npx vitest run -t "flags only"       # run tests whose name matches
 npm run build                        # tsc type-check (noEmit), then vite build into dist/
 npm run preview                      # serve dist/
+cli/prose-diff.ts <file>             # file mode (needs a build); `npm link` installs it as `prose-diff`
 ```
 
-No linter is configured. `npm run build` is the type check (`strict`, `noUnusedLocals`, `noUnusedParameters`, `verbatimModuleSyntax`, so type-only imports need `import type` / `type X`).
+No linter is configured. `npm run build` is the type check (`strict`, `noUnusedLocals`, `noUnusedParameters`, `verbatimModuleSyntax`, so type-only imports need `import type` / `type X`). It checks `src/` with `tsconfig.json` and `cli/` with `tsconfig.cli.json`. The CLI runs as TypeScript directly through Node's type stripping (no build step), so `cli/` imports use `.ts` extensions and only erasable syntax (no enums or parameter properties).
 
 ## What it is
 
@@ -31,4 +32,6 @@ The data flow goes in one direction: `diff.ts` (pure) → `state.ts` (store) →
 - **`toast.ts`** / **`dom.ts`**: `showToast` (an action button is disabled once the toast hides), and the `$`/`el` DOM helpers.
 - **`keyboard.ts`**: one keydown handler with a key→action map. It is ignored while the help dialog is open or while typing. On the paste view, only Ctrl/Cmd+Enter and `?` are active. After every handled key it calls `scrollFocusedIntoView()` (in `render.ts`): it leaves the view alone if the focused change is already comfortably visible, otherwise centers it below the sticky toolbar, or puts its start near the top if it's taller than the view.
 - **`index.html`**: holds all static markup (both views, toolbar, help dialog). Scripts look elements up by id at module load.
+- **`cli/server.ts`** / **`cli/prose-diff.ts`**: file mode's server, Node built-ins only, no diffing. It snapshots the file at startup (in memory) and serves `dist/`, `GET /api/session` (`{ path, name, original, revised, revisedHash }`, reading the file fresh each time) and `POST /api/apply` (`{ merged, revisedHash }`; 409 if the file's hash changed, otherwise writes atomically and makes `merged` the new original). It binds to 127.0.0.1, checks `Host`, and requires the URL's `?t=` token in an `X-Prose-Diff-Token` header. CRLF files are converted to LF for the page and back to CRLF on write. Tested in `cli/server.test.ts`.
+- **`fileMode.ts`**: `isFileMode` (a `?t=` token in the URL) and the API calls. In file mode, `state.ts` starts in review with no texts, keeps decisions in `sessionStorage` (`prose-diff:file`) and only theme/measure in the shared `localStorage` entry, so the pasted texts are never touched. `openSession` loads a session using the same `decisionsKey` check as `compare()`. `html.file-mode` toggles the `[data-mode="paste"|"file"]` controls (Edit inputs/Continue vs Apply, `n` vs `w`).
 - **`style.css`**: a "typed manuscript" look (Courier Prime) with light/dark themes. Theme is `null` (follow system) or an explicit override.

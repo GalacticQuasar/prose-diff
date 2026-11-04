@@ -2,18 +2,32 @@
 
 Compare two versions of a piece of writing and merge them, one change at a time.
 
-Paste an original and a revised version to see every change inline: removed text struck through in red, added text underlined in blue. Changes are compared word by word, not line by line, so a one-word edit doesn't flag a whole paragraph. Accept or reject each change, then copy the merged result. Everything runs in the browser; your text never leaves your machine.
+Every change is shown inline: removed text struck through in red, added text underlined in blue. Changes are compared word by word, not line by line, so a one-word edit doesn't flag a whole paragraph. Accept or reject each change, then take the merged result.
 
-## Usage
+There are two ways to use it:
+
+- **Web app**, at [prose-diff.vercel.app](https://prose-diff.vercel.app). Paste an original and a revised version, review the changes, and copy the merged result. Everything runs in the browser, so your text never leaves your machine.
+- **Command line**, for a file on disk. Run `prose-diff` on the file to save its current text as the original. Then change the file: let an agent like Claude Code edit it, or paste your revised version into it yourself. Open the link `prose-diff` printed to review the changes in the same interface, and apply the merged result straight back to the file.
+
+## Web app
+
+Open [prose-diff.vercel.app](https://prose-diff.vercel.app), paste the two versions and press **Compare** (or `Ctrl`+`Enter`). Your texts and decisions are saved in your browser, so they survive a refresh. See [How it works](#how-it-works) and [Keyboard shortcuts](#keyboard-shortcuts).
+
+## Command line
+
+The command line tool runs from a clone of this repo:
 
 ```sh
 npm install
-npm run dev       # start the dev server
-npm test          # run unit tests
-npm run build     # build static files into dist/
+npm run build && npm link   # once: puts `prose-diff` on your PATH
+prose-diff draft.md          # saves draft.md as the original and prints a link
 ```
 
-`dist/` is plain static files, so you can host it anywhere or serve it locally with `npm run preview`.
+`npm link` puts a global symlink to this repo on your PATH, so changes to the repo take effect without linking again (run `npm run build` after changing the app). With nvm, the link only exists for the Node version that was active when you ran it. To remove it, run `npm rm -g prose-diff`.
+
+Edit `draft.md` however you like (by hand, or with Claude Code or another tool). Then open the printed link, or refresh it, to review the original against the file as it is now. **Apply to file** (`w`) writes the merged result back to `draft.md`. Undecided changes are reverted to the original, after you confirm. The merged text becomes the new original, so you can keep editing and reviewing in rounds until you stop `prose-diff` with Ctrl+C. If the file changed again after you loaded the page, Apply refuses to write and offers to reload.
+
+The page is served by `prose-diff` itself on your machine, not by the hosted web app. The server only listens on 127.0.0.1, and the link carries a token the page needs to read or write the file. Decisions survive a refresh as long as the file hasn't changed. They're kept per tab, separately from the texts saved in paste mode.
 
 ## How it works
 
@@ -41,9 +55,21 @@ npm run build     # build static files into dist/
 | `u` | Undo decision |
 | `c` | Copy result |
 | `n` | Continue from result |
+| `w` | Apply to file (when reviewing a file) |
 | `[` / `]` | Narrow / widen the page |
 | `Ctrl`+`Enter` | Compare (on the paste screen) |
 | `?` | Show shortcuts |
+
+## Development
+
+```sh
+npm install
+npm run dev       # start the dev server
+npm test          # run unit tests
+npm run build     # type-check, then build static files into dist/
+```
+
+`dist/` is plain static files, so you can host it anywhere or serve it locally with `npm run preview`.
 
 ## Project layout
 
@@ -54,6 +80,9 @@ src/state.ts       app state and local storage persistence
 src/render.ts      paste and review views, copy, toast
 src/keyboard.ts    keyboard shortcuts
 src/main.ts        startup and event wiring
+src/fileMode.ts    talking to the `prose-diff <file>` server
+cli/prose-diff.ts  the `prose-diff <file>` command
+cli/server.ts      its local server: serves dist/, reads and writes the file (tested)
 src/style.css      light and dark themes
 ```
 

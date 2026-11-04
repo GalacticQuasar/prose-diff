@@ -1,8 +1,9 @@
 import '@fontsource/courier-prime/400.css';
 import '@fontsource/courier-prime/700.css';
 import './style.css';
-import { compareInputs, copyResult, nextRound } from './actions';
+import { applyToFile, compareInputs, copyResult, loadFile, nextRound } from './actions';
 import { $ } from './dom';
+import { isFileMode } from './fileMode';
 import { bindKeyboard } from './keyboard';
 import { bindResizer } from './measure';
 import { bindMinimap } from './minimap';
@@ -22,6 +23,7 @@ $('accept-all-btn').addEventListener('click', acceptAll);
 $('reject-all-btn').addEventListener('click', rejectAll);
 $('copy-btn').addEventListener('click', () => void copyResult());
 $('continue-btn').addEventListener('click', nextRound);
+$('apply-btn').addEventListener('click', () => void applyToFile());
 $('help-btn').addEventListener('click', () => help.showModal());
 $('theme-btn').addEventListener('click', toggleTheme);
 
@@ -36,5 +38,11 @@ bindDocEvents();
 bindMinimap();
 bindResizer(relayout);
 bindKeyboard(help);
+if (isFileMode) {
+  document.documentElement.classList.add('file-mode');
+  // Apply is the main action here; Copy stays available as a secondary one.
+  $('copy-btn').classList.remove('primary');
+}
 subscribe(render);
 render();
+if (isFileMode) void loadFile();

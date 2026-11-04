@@ -35,13 +35,15 @@
       <section id="review-view" hidden>
         <div class="toolbar">
           <span id="counts"></span>
+          <span id="file-name" data-mode="file"></span>
           <span class="spacer"></span>
-          <button id="edit-btn">Edit inputs</button>
+          <button id="edit-btn" data-mode="paste">Edit inputs</button>
           <button id="reset-btn">Reset</button>
           <button id="reject-all-btn">Reject all</button>
           <button id="accept-all-btn">Accept all</button>
-          <button id="continue-btn" title="Use the merged result as the new original (n)">Continue from result</button>
-          <button id="copy-btn" class="primary">Copy result</button>
+          <button id="continue-btn" data-mode="paste" title="Use the merged result as the new original (n)">Continue from result</button>
+          <button id="copy-btn" class="primary" title="Copy the merged result (c)">Copy result</button>
+          <button id="apply-btn" class="primary" data-mode="file" title="Write the merged result to the file (w)">Apply to file</button>
         </div>
         <div class="page">
           <aside class="keys hint" aria-label="Keyboard shortcuts">
@@ -52,7 +54,8 @@
               <dt><kbd>r</kbd></dt><dd>reject</dd>
               <dt><kbd>u</kbd></dt><dd>undo</dd>
               <dt><kbd>c</kbd></dt><dd>copy</dd>
-              <dt><kbd>n</kbd></dt><dd>next round</dd>
+              <dt data-mode="paste"><kbd>n</kbd></dt><dd data-mode="paste">next round</dd>
+              <dt data-mode="file"><kbd>w</kbd></dt><dd data-mode="file">apply to file</dd>
               <dt><kbd>[</kbd> <kbd>]</kbd></dt><dd>page width</dd>
               <dt><kbd>?</kbd></dt><dd>all keys</dd>
             </dl>
@@ -84,7 +87,8 @@
         <tr><td><kbd>r</kbd> / <kbd>Backspace</kbd></td><td>Reject, go to next undecided</td></tr>
         <tr><td><kbd>u</kbd></td><td>Undo decision</td></tr>
         <tr><td><kbd>c</kbd></td><td>Copy result</td></tr>
-        <tr><td><kbd>n</kbd></td><td>Continue from result (next round)</td></tr>
+        <tr data-mode="paste"><td><kbd>n</kbd></td><td>Continue from result (next round)</td></tr>
+        <tr data-mode="file"><td><kbd>w</kbd></td><td>Apply to file (merged result becomes the new original)</td></tr>
         <tr><td><kbd>[</kbd> / <kbd>]</kbd></td><td>Narrow / widen the page</td></tr>
         <tr><td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td><td>Compare (paste screen)</td></tr>
         <tr><td><kbd>?</kbd></td><td>Show this help</td></tr>

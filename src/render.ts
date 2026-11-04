@@ -1,5 +1,6 @@
 import { countDecisions, decisionOf, type Decision, type Segment } from './diff';
 import { $, el } from './dom';
+import { isFileMode } from './fileMode';
 import { applyMeasure } from './measure';
 import { minimapWidth, renderMinimap, setMinimapShown } from './minimap';
 import { decide, focus, getSegments, state } from './state';
@@ -11,6 +12,7 @@ const page = reviewView.querySelector<HTMLElement>('.page')!;
 const marks = $('marks');
 const keys = page.querySelector<HTMLElement>('.keys')!;
 const counts = $('counts');
+const fileName = $('file-name');
 const toolbar = reviewView.querySelector<HTMLElement>('.toolbar')!;
 const actions = $('change-actions');
 export const originalInput = $<HTMLTextAreaElement>('original');
@@ -46,9 +48,16 @@ function renderChange(seg: Extract<Segment, { kind: 'change' }>) {
   return span;
 }
 
+function emptyMessage() {
+  if (!isFileMode) return 'No differences — the two texts are identical.';
+  if (state.fileError) return state.fileError;
+  if (!state.file) return 'Loading…';
+  return `No changes to ${state.file.name} yet. Edit the file, then refresh this page.`;
+}
+
 function renderDoc(segments: Segment[]) {
   if (!segments.some((s) => s.kind === 'change')) {
-    doc.replaceChildren(el('p', 'empty', 'No differences — the two texts are identical.'));
+    doc.replaceChildren(el('p', 'empty', emptyMessage()));
     return;
   }
   doc.replaceChildren(
@@ -158,6 +167,11 @@ export function render() {
     const segments = getSegments();
     const c = countDecisions(segments, state.decisions);
     counts.textContent = c.total ? `${c.total - c.pending} of ${c.total} decided` : 'No changes';
+    if (isFileMode) {
+      fileName.textContent = state.file ? `in ${state.file.name}` : '';
+      fileName.title = state.file?.path ?? '';
+      document.title = state.file ? `${state.file.name} · Prose Diff` : 'Prose Diff';
+    }
     // Before measuring anything: showing the minimap hides the scrollbar, which widens the view.
     setMinimapShown(c.total > 0);
     renderDoc(segments);

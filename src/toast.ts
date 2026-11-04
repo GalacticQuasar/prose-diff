@@ -22,6 +22,6 @@ export function showToast(message: string, action?: { label: string; run: () => 
   }
   toast.classList.add('show');
   window.clearTimeout(timer);
-  // Leave time to reach the action button.
-  timer = window.setTimeout(hide, action ? 6000 : 1600);
+  // Leave time to reach the action button, or to read a longer message.
+  timer = window.setTimeout(hide, action ? 6000 : Math.max(1600, message.length * 60));
 }

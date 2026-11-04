@@ -1,4 +1,5 @@
-import { compareInputs, copyResult, nextRound } from './actions';
+import { applyToFile, compareInputs, copyResult, nextRound } from './actions';
+import { isFileMode } from './fileMode';
 import { adjustMeasure } from './measure';
 import { scrollFocusedIntoView } from './render';
 import { MEASURE, decideFocused, focusEdge, focusStep, state } from './state';
@@ -35,7 +36,8 @@ export function bindKeyboard(help: HTMLDialogElement) {
       Backspace: () => decideFocused('rejected'),
       u: () => decideFocused('pending'),
       c: () => void copyResult(),
-      n: nextRound,
+      // In file mode, applying starts the next round (the file is the revised text).
+      ...(isFileMode ? { w: () => void applyToFile() } : { n: nextRound }),
       '[': () => adjustMeasure(-MEASURE.step),
       ']': () => adjustMeasure(MEASURE.step),
       '?': () => help.showModal(),
