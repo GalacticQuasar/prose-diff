@@ -23,10 +23,14 @@ let lastView: string | null = null;
 let hoverId: number | null = null;
 let hideTimer: number | undefined;
 
-/** Make whitespace-only and newline edits visible inside del/ins. */
+/**
+ * Make whitespace-only and line-break edits visible inside del/ins. A CR (from
+ * a file's CRLF or lone-CR line endings) is otherwise invisible; it's shown as
+ * `^M`, as in Vim, since the page font has no glyph for ␍.
+ */
 function visible(text: string): string {
   if (/^[ \t]+$/.test(text)) return text.replace(/ /g, '·').replace(/\t/g, '→');
-  return text.replace(/\n/g, '¶\n');
+  return text.replace(/\r/g, '^M').replace(/\n/g, '¶\n');
 }
 
 function renderChange(seg: Extract<Segment, { kind: 'change' }>) {

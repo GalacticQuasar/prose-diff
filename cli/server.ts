@@ -54,14 +54,38 @@ const TYPES: Record<string, string> = {
   '.ico': 'image/x-icon',
 };
 
+class HttpError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
 const sha256 = (data: string | Buffer) => createHash('sha256').update(data).digest('hex');
 
-/** The file's text with CRLF normalized to LF (the diff works on LF), plus what it needs to be written back. */
+// fatal: refuse invalid bytes instead of replacing them with U+FFFD, which a later
+// write would save over the file. ignoreBOM: keep a byte-order mark in the text so
+// it's written back.
+const utf8 = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
+
+/**
+ * The file's exact text, line endings included: the diff and merge handle CRLF,
+ * mixed and lone-CR endings exactly, so nothing is converted.
+ */
 async function readText(path: string) {
   const raw = await readFile(path);
-  const text = raw.toString('utf8');
-  return { text: text.replace(/\r\n/g, '\n'), crlf: text.includes('\r\n'), hash: sha256(raw) };
+  let text: string;
+  try {
+    text = utf8.decode(raw);
+  } catch {
+    throw new HttpError(415, `${basename(path)} is not valid UTF-8 text; prose-diff only edits UTF-8 files`);
+  }
+  return { text, hash: sha256(raw) };
 }
+
+/** Hash of the file's bytes, without decoding them (for polling). */
+const fileHash = async (path: string) => sha256(await readFile(path));
 
 /** Write via a temp file and rename, so a crash never leaves the file half-written. */
 async function writeAtomic(path: string, text: string) {
@@ -73,14 +97,6 @@ async function writeAtomic(path: string, text: string) {
   } catch (err) {
     await unlink(tmp).catch(() => {});
     throw err;
-  }
-}
-
-class HttpError extends Error {
-  status: number;
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
   }
 }
 
@@ -120,7 +136,7 @@ export async function startServer(opts: ServerOptions): Promise<ProseServer> {
   }
 
   async function status(): Promise<Status> {
-    return { originalHash, revisedHash: (await readText(path)).hash };
+    return { originalHash, revisedHash: await fileHash(path) };
   }
 
   function authorized(req: IncomingMessage) {
@@ -135,12 +151,13 @@ export async function startServer(opts: ServerOptions): Promise<ProseServer> {
     if (typeof body.merged !== 'string' || typeof body.revisedHash !== 'string') {
       throw new HttpError(400, 'Expected { merged, revisedHash }');
     }
-    const current = await readText(path);
-    if (current.hash !== body.revisedHash) {
+    // A lone surrogate would be written as U+FFFD, changing text nobody decided on.
+    if (!body.merged.isWellFormed()) throw new HttpError(400, 'Merged text is not well-formed Unicode');
+    if ((await fileHash(path)) !== body.revisedHash) {
       throw new HttpError(409, `${name} changed since you loaded it`);
     }
-    const merged = body.merged.replace(/\r\n/g, '\n');
-    await writeAtomic(path, current.crlf ? merged.replace(/\n/g, '\r\n') : merged);
+    const merged = body.merged;
+    await writeAtomic(path, merged);
     original = merged;
     originalHash = sha256(merged);
     return session();

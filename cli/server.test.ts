@@ -45,6 +45,12 @@ function call(path: string, opts: { method?: string; body?: unknown; token?: str
 
 const getSession = async () => (await call('/api/session')).json() as Session;
 
+/** Restart the server so it snapshots the file as it is now. */
+async function restart() {
+  await server.close();
+  server = await startServer({ file, distDir: join(dir, 'dist'), token: TOKEN });
+}
+
 describe('session', () => {
   it('reads the file fresh on every request', async () => {
     let s = await getSession();
@@ -109,12 +115,64 @@ describe('apply', () => {
     expect((await call('/api/apply', { method: 'POST', body: { merged: 1 } })).status).toBe(400);
   });
 
-  it('round-trips CRLF line endings', async () => {
+  /** Load the session, apply `merge(original, revised)`, and return what's on disk. */
+  async function applyWith(merge: (s: Session) => string) {
+    const s = await getSession();
+    const res = await call('/api/apply', { method: 'POST', body: { merged: merge(s), revisedHash: s.revisedHash } });
+    return { status: res.status, onDisk: await readFile(file) };
+  }
+
+  it('keeps mixed line endings exactly as they are', async () => {
+    await writeFile(file, 'a\r\nb\nc\r\n');
+    await restart();
+    await writeFile(file, 'a\r\nB\nc\r\n');
+    const s = await getSession();
+    expect(s.original).toBe('a\r\nb\nc\r\n');
+    expect(s.revised).toBe('a\r\nB\nc\r\n');
+    expect((await applyWith((s) => s.revised)).onDisk.toString()).toBe('a\r\nB\nc\r\n');
+  });
+
+  it('shows a line-ending-only change, and rejecting it restores the original endings', async () => {
+    await writeFile(file, 'one\ntwo\n');
+    await restart();
     await writeFile(file, 'one\r\ntwo\r\n');
     const s = await getSession();
-    expect(s.revised).toBe('one\ntwo\n');
-    await call('/api/apply', { method: 'POST', body: { merged: 'one\nthree\n', revisedHash: s.revisedHash } });
-    expect(await readFile(file, 'utf8')).toBe('one\r\nthree\r\n');
+    expect(s.original).not.toBe(s.revised);
+    expect((await applyWith((s) => s.original)).onDisk.toString()).toBe('one\ntwo\n');
+  });
+
+  it('keeps a byte-order mark and lone CRs', async () => {
+    const text = '\uFEFFold\rmac\r';
+    await writeFile(file, text);
+    await restart();
+    await writeFile(file, '\uFEFFnew\rmac\r');
+    expect((await applyWith((s) => s.original)).onDisk.equals(Buffer.from(text))).toBe(true);
+  });
+
+  it('refuses merged text that is not well-formed Unicode', async () => {
+    const { status, onDisk } = await applyWith(() => 'broken \uD83D');
+    expect(status).toBe(400);
+    expect(onDisk.toString()).toBe('The quick brown fox.\n');
+  });
+});
+
+describe('non-UTF-8 files', () => {
+  const latin1 = Buffer.from('caf\xe9\n', 'latin1');
+
+  it('refuses to start on one', async () => {
+    await writeFile(file, latin1);
+    await expect(startServer({ file, distDir: null })).rejects.toThrow(/not valid UTF-8/);
+  });
+
+  it('refuses to read or overwrite one that became non-UTF-8', async () => {
+    const { revisedHash } = await getSession();
+    await writeFile(file, latin1);
+    expect((await call('/api/session')).status).toBe(415);
+    // Polling still works, so the page can notice the change.
+    expect((await call('/api/status')).status).toBe(200);
+    const res = await call('/api/apply', { method: 'POST', body: { merged: 'x', revisedHash } });
+    expect(res.status).toBe(409);
+    expect((await readFile(file)).equals(latin1)).toBe(true);
   });
 });
 

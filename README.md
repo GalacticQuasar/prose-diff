@@ -29,6 +29,8 @@ Edit `draft.md` however you like (by hand, or with Claude Code or another tool).
 
 While the page is open, it notices when the file changes on disk. If you haven't decided anything yet, it shows the new version right away. Otherwise the toolbar says **Changed on disk** with a **Reload** button, so you choose when to reload. Reloading usually clears your decisions, because they belong to the old set of changes. If you apply anyway, Apply refuses to write the file and nothing is lost.
 
+The file is merged exactly as it is, line endings included: mixed or Windows-style (CRLF) line endings are kept, and if an edit converts them, that shows up as a change you can reject. `prose-diff` only works on UTF-8 text files and refuses to open or overwrite anything else, so it never damages text it can't read.
+
 The page is served by `prose-diff` itself on your machine, not by the hosted web app. The server only listens on 127.0.0.1, and the link carries a token the page needs to read or write the file. Decisions survive a refresh as long as the file hasn't changed. They're kept per tab, separately from the texts saved in paste mode.
 
 ## How it works
@@ -40,7 +42,7 @@ The page is served by `prose-diff` itself on your machine, not by the hosted web
 - **Copy result** copies the merged text. Changes you haven't decided on keep your original wording.
 - **Continue from result** starts the next round: the merged text becomes the new original and Revised is cleared for your next draft. The toast that appears has an **Undo** button that brings back the previous round.
 - A long stretch where nearly every line was rewritten is shown as one change for the whole stretch, so it stays quick to compare.
-- Edits to spaces and line breaks are shown with `·`, `→` and `¶` markers. These only appear on screen, not in the copied text.
+- Edits to spaces and line breaks are shown with `·`, `→` and `¶` markers, and a carriage return (part of a file's Windows-style line endings) as `^M`. These only appear on screen, not in the copied or applied text.
 - Your text and decisions are saved in the browser's local storage, so they survive a refresh. Changing the inputs and comparing again clears the decisions.
 - Drag the handle on the page's right edge to change how many characters fit on a line (30–120, as far as the window allows). Double-click it to go back to 65. You can also focus it and use the arrow keys, or press `[` and `]` anywhere. The width is saved with the rest of your session.
 - Dark mode follows your system setting. The ◐ button overrides it.

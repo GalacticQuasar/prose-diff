@@ -26,6 +26,18 @@ const samples: [string, string][] = [
   ['Intro.\nBody.', 'New first line.\nIntro.\nBody.'],
   ['Body.\nEnd.', 'Body.\nEnd.\nNew last line.'],
   [ANSWER_BOX, ANSWER_BOX_FILLED],
+  // Only the final newline changes.
+  ['Last line.', 'Last line.\n'],
+  ['Last line.\n', 'Last line.'],
+  // Line endings: CRLF, conversions, mixed and lone CR (files keep theirs in file mode).
+  ['one\r\ntwo\r\n', 'one\r\nTWO\r\n'],
+  ['one\ntwo\n', 'one\r\ntwo\r\n'],
+  ['one\r\ntwo\r\n', 'one\ntwo\n'],
+  ['a\r\nb\nc\r\n', 'a\r\nB\nc\r\nd\n'],
+  ['old\rmac\r', 'new\rmac\r'],
+  // Byte-order mark, emoji and combining accents.
+  ['\uFEFFHello.', 'Hello.'],
+  ['Nice 👍 café', 'Nice 👍🏽 cafe\u0301!'],
 ];
 
 describe('buildSegments', () => {
@@ -107,6 +119,7 @@ describe('line-first diffing', () => {
       { kind: 'change', id: 0, removed: words('old'), added: words('new') },
     ]);
     expect(mergeResult(buildSegments(original, revised), { 0: 'accepted' })).toBe(revised);
+    expect(mergeResult(buildSegments(original, revised), { 0: 'rejected' })).toBe(original);
   });
 });
 
@@ -150,5 +163,42 @@ describe('countDecisions', () => {
       rejected: 1,
       pending: 1,
     });
+  });
+});
+
+describe('random texts', () => {
+  // A fixed seed keeps this deterministic: a failure reproduces on every run.
+  let seed = 12345;
+  const rnd = () => (seed = (Math.imul(seed, 1103515245) + 12345) >>> 0) / 2 ** 32;
+  const pick = <T,>(items: T[]) => items[Math.floor(rnd() * items.length)];
+  const TOKENS = ['the', 'a', 'fox', 'end', '\\end{', 'café', '👍', 'e\u0301', '中文', ' ', '  ', '\t', '\n', '\n', '\r\n', '\r', '.', ',', '-', '\u00a0', '\uFEFF'];
+  const text = (n: number) => Array.from({ length: n }, () => pick(TOKENS)).join('');
+  /** Replace, drop and insert some words, so the texts share most of their content. */
+  const mutate = (s: string) =>
+    s
+      .split(/(\s+)/)
+      .map((part) => {
+        const r = rnd();
+        return r < 0.1 ? pick(TOKENS) : r < 0.15 ? '' : r < 0.2 ? part + pick(TOKENS) + pick(TOKENS) : part;
+      })
+      .join('') + (rnd() < 0.2 ? '\n' : '');
+
+  const pairs: [string, string][] = [];
+  for (let i = 0; i < 300; i++) {
+    const original = text(Math.floor(rnd() * 60));
+    pairs.push([original, mutate(original)], [original, text(Math.floor(rnd() * 60))]);
+  }
+
+  it('merges back to exactly the chosen side of every change', () => {
+    for (const [original, revised] of pairs) {
+      const segs = buildSegments(original, revised);
+      const ids = changeIds(segs);
+      expect(mergeResult(segs, {})).toBe(original);
+      expect(mergeResult(segs, all(ids, 'rejected'))).toBe(original);
+      expect(mergeResult(segs, all(ids, 'accepted'))).toBe(revised);
+      const mixed: Decisions = Object.fromEntries(ids.map((id) => [id, rnd() < 0.5 ? 'accepted' : 'rejected']));
+      const expected = segs.map((s) => (s.kind === 'same' ? s.text : mixed[s.id] === 'accepted' ? s.added : s.removed)).join('');
+      expect(mergeResult(segs, mixed)).toBe(expected);
+    }
   });
 });
