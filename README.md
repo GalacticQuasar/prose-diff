@@ -84,16 +84,22 @@ To try the command line tool from your clone, run `cli/prose-diff.ts <file>` dir
 ## Project layout
 
 ```
-src/diff.ts        word-level diff, grouping into changes, merging (pure, tested)
-src/diff.test.ts   unit tests (Vitest)
-src/state.ts       app state and local storage persistence
-src/render.ts      paste and review views, copy, toast
-src/keyboard.ts    keyboard shortcuts
-src/main.ts        startup and event wiring
-src/fileMode.ts    talking to the `prose-diff <file>` server
-cli/prose-diff.ts  the `prose-diff <file>` command
-cli/server.ts      its local server: serves dist/, reads and writes the file (tested)
-src/style.css      light and dark themes
+src/diff.ts          word-level diff, grouping into changes, merging (pure, tested)
+src/diff.test.ts     unit tests (Vitest)
+src/state.ts         app state and its persistence
+src/render.ts        paste and review views
+src/minimap.ts       the overview strip at the window's right edge
+src/measure.ts       page width: the [ ] keys and the drag handle
+src/actions.ts       actions with feedback: compare, copy, next round, apply to file
+src/keyboard.ts      keyboard shortcuts
+src/toast.ts         toast messages
+src/dom.ts           small DOM helpers
+src/fileMode.ts      talking to the `prose-diff <file>` server
+src/main.ts          startup and event wiring
+src/style.css        light and dark themes
+cli/prose-diff.ts    the `prose-diff <file>` command
+cli/server.ts        its local server: serves dist/, reads and writes the file
+cli/server.test.ts   server tests
 ```
 
 Built with Vite, TypeScript and [jsdiff](https://github.com/kpdecker/jsdiff).
