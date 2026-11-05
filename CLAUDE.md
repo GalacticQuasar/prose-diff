@@ -14,6 +14,8 @@ cli/prose-diff.ts <file>             # file mode from source (needs dist/ built)
 npm pack --dry-run                   # list what `npm publish` would ship
 ```
 
+`npm run dev` only covers paste mode, because Vite doesn't serve `/api`. To work on file mode, run `npx vite build --watch`, then once `dist/` exists run `cli/prose-diff.ts <file>` in another terminal, and refresh the page after each rebuild. The server reads `dist/` on every request, so the CLI doesn't need restarting, and the snapshot and token stay the same.
+
 No linter is configured. `npm run build` is the type check (`strict`, `noUnusedLocals`, `noUnusedParameters`, `verbatimModuleSyntax`, so type-only imports need `import type` / `type X`). It checks `src/` with `tsconfig.json` and `cli/` with `tsconfig.cli.json`. In the repo the CLI runs as TypeScript directly through Node's type stripping, so `cli/` imports use `.ts` extensions and only erasable syntax (no enums or parameter properties). Node won't strip types inside `node_modules`, so the published package's `bin` is the compiled `dist-cli/prose-diff.js` (`tsconfig.cli.build.json`, which rewrites the `.ts` imports and skips tests). The package ships no runtime dependencies: Vite bundles `diff` and the font into `dist/`, and the CLI uses Node built-ins only, so everything is a devDependency. It supports Node 20+ (`engines`), so the CLI must not use newer Node APIs.
 
 ## What it is
