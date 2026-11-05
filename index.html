@@ -100,6 +100,15 @@
       <form method="dialog"><button class="primary">Close</button></form>
     </dialog>
 
+    <dialog id="apply-dialog" aria-labelledby="apply-dialog-title" aria-describedby="apply-dialog-message">
+      <h2 id="apply-dialog-title">Apply to file?</h2>
+      <p id="apply-dialog-message"></p>
+      <form method="dialog">
+        <button value="cancel">Cancel</button>
+        <button value="apply" class="primary" autofocus>Apply</button>
+      </form>
+    </dialog>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

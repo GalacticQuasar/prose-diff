@@ -522,7 +522,7 @@ html.minimap-on::-webkit-scrollbar {
   }
 }
 
-/* Help dialog */
+/* Dialogs */
 dialog {
   color: var(--ink);
   background: var(--sheet);
@@ -543,6 +543,13 @@ dialog td {
 dialog form {
   margin-top: 1rem;
   text-align: right;
+}
+#apply-dialog {
+  max-width: 46ch;
+}
+#apply-dialog p {
+  margin: 0;
+  overflow-wrap: anywhere; /* long file names */
 }
 kbd {
   font: 0.9em var(--mono);

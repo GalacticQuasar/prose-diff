@@ -1,4 +1,5 @@
 import { countDecisions, mergeResult } from './diff';
+import { $ } from './dom';
 import { applyMerged, fetchSession, fetchStatus } from './fileMode';
 import { revisedInput } from './render';
 import { compare, continueFromResult, getSegments, openSession, setFileError, setFileStale, state } from './state';
@@ -62,6 +63,17 @@ export async function reloadFile() {
   else showToast(res.error);
 }
 
+/** Resolves to whether the reader chose Apply; Cancel and Esc both count as no. */
+function confirmApply(message: string) {
+  const dialog = $<HTMLDialogElement>('apply-dialog');
+  $('apply-dialog-message').textContent = message;
+  dialog.returnValue = ''; // Esc leaves the value from the last time it closed.
+  dialog.showModal();
+  return new Promise<boolean>((resolve) => {
+    dialog.addEventListener('close', () => resolve(dialog.returnValue === 'apply'), { once: true });
+  });
+}
+
 let applying = false;
 
 /** File mode: write the merged result to the file; it becomes the new original. */
@@ -73,10 +85,11 @@ export async function applyToFile() {
     showToast('No changes to apply.');
     return;
   }
-  if (pending && !confirm(`${plural(pending, 'undecided change')} will be reverted to the original. Apply to ${file.name} anyway?`)) return;
 
+  // Set before asking: it also stops checkFile from swapping the session while the dialog is open.
   applying = true;
   try {
+    if (pending && !(await confirmApply(`${plural(pending, 'undecided change')} will be reverted to the original. Apply to ${file.name} anyway?`))) return;
     const res = await applyMerged(mergeResult(getSegments(), state.decisions), file.revisedHash);
     if (res.ok) {
       openSession(res.data);

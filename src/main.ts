@@ -29,11 +29,12 @@ $('help-btn').addEventListener('click', () => help.showModal());
 $('theme-btn').addEventListener('click', toggleTheme);
 
 // Mouse clicks shouldn't leave a button focused, or Enter would re-trigger it
-// instead of accepting the focused change.
+// instead of accepting the focused change. Capture runs this before the button's
+// own handler, so a dialog it opens doesn't return focus to the button on closing.
 document.addEventListener('click', (e) => {
   const btn = (e.target as HTMLElement).closest('button');
   if (btn && e.detail > 0) btn.blur();
-});
+}, true);
 
 bindDocEvents();
 bindMinimap();

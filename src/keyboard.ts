@@ -6,7 +6,7 @@ import { MEASURE, decideFocused, focusEdge, focusStep, state } from './state';
 
 export function bindKeyboard(help: HTMLDialogElement) {
   document.addEventListener('keydown', (e) => {
-    if (help.open) return;
+    if (document.querySelector('dialog[open]')) return;
     const target = e.target as HTMLElement;
     const typing = target.matches('textarea, input, [contenteditable]');
 
