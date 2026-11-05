@@ -4,13 +4,19 @@ import { existsSync } from 'node:fs';
 import { relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { openBrowser } from './open.ts';
 import { startServer } from './server.ts';
 
-const USAGE = `Usage: prose-diff <file> [--port <n>]
+const USAGE = `Usage: prose-diff <file> [--port <n>] [--open]
 
 Saves <file> as it is now, then serves a review page. Edit the file however
 you like, open (or refresh) the page to review the changes, and Apply to
-write the merged result back.`;
+write the merged result back.
+
+Options:
+  -p, --port <n>  Port to listen on (default: any free port)
+  -o, --open      Open the review page in your browser
+  -h, --help      Show this help`;
 
 function fail(message: string): never {
   console.error(`prose-diff: ${message}`);
@@ -21,7 +27,11 @@ let args;
 try {
   args = parseArgs({
     allowPositionals: true,
-    options: { port: { type: 'string', short: 'p' }, help: { type: 'boolean', short: 'h' } },
+    options: {
+      port: { type: 'string', short: 'p' },
+      open: { type: 'boolean', short: 'o' },
+      help: { type: 'boolean', short: 'h' },
+    },
   });
 } catch (err) {
   fail(`${(err as Error).message}\n\n${USAGE}`);
@@ -47,6 +57,11 @@ try {
   const stop = () => void server.close().then(() => process.exit(0));
   process.on('SIGINT', stop);
   process.on('SIGTERM', stop);
+  if (args.values.open) {
+    void openBrowser(server.url).then((opened) => {
+      if (!opened) console.error('prose-diff: could not open a browser; use the link above');
+    });
+  }
 } catch (err) {
   const e = err as NodeJS.ErrnoException;
   fail(e.code === 'EADDRINUSE' ? `port ${port} is in use` : e.message);

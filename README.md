@@ -23,6 +23,7 @@ Requires Node.js 20 or later.
 npx prose-diff draft.md          # run it without installing
 npm install -g prose-diff        # or install the `prose-diff` command
 prose-diff draft.md              # saves draft.md as the original and prints a link
+prose-diff draft.md --open       # also opens the link in your browser
 ```
 
 To uninstall, run `npm rm -g prose-diff`.
@@ -98,6 +99,7 @@ src/fileMode.ts      talking to the `prose-diff <file>` server
 src/main.ts          startup and event wiring
 src/style.css        light and dark themes
 cli/prose-diff.ts    the `prose-diff <file>` command
+cli/open.ts          the `--open` flag: launching the browser
 cli/server.ts        its local server: serves dist/, reads and writes the file
 cli/server.test.ts   server tests
 ```
